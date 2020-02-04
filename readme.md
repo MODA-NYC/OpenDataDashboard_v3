@@ -1,6 +1,6 @@
 ## Open Data Dashboard v3
 
-The dashboard is hosted via [Google Data Studio](https://datastudio.google.com/u/0/navigation/reporting). Make sure to be logged in with `modanycga@gmail.com` account to edit it. 
+The dashboard is hosted via [Google Data Studio](https://datastudio.google.com/u/0/navigation/reporting). View dashboard [here](https://datastudio.google.com/s/pWVm-fDdrzc). Make sure to be logged in with `modanycga@gmail.com` account to edit it. 
 
 Files in this directory:
 
