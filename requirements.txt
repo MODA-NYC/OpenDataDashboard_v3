@@ -1,0 +1,6 @@
+df2gspread==1.0.4
+gspread==3.1.0
+numpy==1.18.1
+pandas==0.25.3
+requests==2.22.0
+sodapy==1.5.5
