@@ -5,10 +5,7 @@ from requests.auth import HTTPBasicAuth
 
 import os
 
-# depreciated
-#from oauth2client.service_account import ServiceAccountCredentials
-from google.oauth2.service_account import Credentials
-
+from oauth2client.service_account import ServiceAccountCredentials
 import gspread
 from df2gspread import df2gspread as d2g
 
@@ -20,14 +17,11 @@ socrata_key = 'dpovnwa4lwoaka48233qr8b2f'
 socrata_secret = '4taqkebdfxsaaf7sqo0qgze23enewwn50ro9jyjk9ury6qcen1'
 
 #### Google Sheets
-#gs_scope = ['https://spreadsheets.google.com/feeds']
-gs_scope = ['https://spreadsheets.google.com/feeds',
-         'https://www.googleapis.com/auth/drive']
-
+gs_scope = ['https://spreadsheets.google.com/feeds']
 ## IMPORTANT: adjust the path as necessary
 # gs_credentials = ServiceAccountCredentials.from_json_keyfile_name('/media/sf_VBUM_FCTF/ODD/ODD_v3/dashboard/Jupyter_and_Google_Sheets-12b039cdb296.json', gs_scope)
 
-gs_credentials = Credentials.from_service_account_file('Jupyter_and_Google_Sheets-12b039cdb296.json',scopes=gs_scope)
+gs_credentials = ServiceAccountCredentials.from_json_keyfile_name(os.getcwd()+'/Jupyter_and_Google_Sheets-12b039cdb296.json', gs_scope)
 
 gs_key = '1PyZUeeo_lY3Ox6e_577aiPly_Bu0y9Vpc1_NWwe3pK4'
 
@@ -78,24 +72,18 @@ def get_socrata_row_count(limit=1000000):
     """
     
     uid = "gzid-z3nh"
-    # https://data.cityofnewyork.us/dataset/Daily-Dataset-Facts/gzid-z3nh/data
     
     # get the date of the last time the dataset was updated
-    #assets_df = call_socrata_api("r8cp-r4rc") old asset inventory id
-    assets_df = call_socrata_api("kvci-ugf9")
-    # https://data.cityofnewyork.us/dataset/Asset-Inventory/kvci-ugf9
-    
-    #last_update_date = assets_df[assets_df.uid==uid]["last_update_date_data"]
-    last_update_date = assets_df[assets_df.uid==uid]["last_data_updated_date"]
-
+    assets_df = call_socrata_api("r8cp-r4rc")
+    last_update_date = assets_df[assets_df.u_id==uid]["last_update_date_data"]
     last_update_date = pd.to_datetime(last_update_date.values[0]).strftime("%Y-%m-%d") + "T00:00:00.000"
-   
-    #print(f"Dataset facts dataset was last updated on: {last_update_date}")
+    
+    print(f"Dataset facts dataset was last updated on: {last_update_date}")
     
     # pull the data only for the last updated date
     
     num_records = f"$limit={limit}"
-    filters = f"&$where=date>='{last_update_date}'"
+    filters = f"&$where=date>'{last_update_date}'"
 
     r = requests.get(socrata_url + uid + ".json?" + num_records + filters, 
                     auth=HTTPBasicAuth(socrata_key, socrata_secret))
