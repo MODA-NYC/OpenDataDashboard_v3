@@ -33,26 +33,27 @@ dfacts_agency_df = dfacts.groupby(['agency'])['asset_rows']\
 #### Step 2. Get dates of the data updates
 
 # Asset Inventory (Private Access)
-# https://data.cityofnewyork.us/dataset/Asset-Inventory/r8cp-r4rc
-private_df = credentials.call_socrata_api('r8cp-r4rc')
+# https://data.cityofnewyork.us/dataset/Asset-Inventory/kvci-ugf9
+private_df = credentials.call_socrata_api('kvci-ugf9')
 
 # get the dates each of datasets has been updated
-dates_df = private_df[private_df.u_id.isin(['gzid-z3nh','5tqd-u88y','qj2z-ibhs'])]\
-                [['u_id', 'last_update_date_data']]
-dates_df['last_update_date_data'] = pd.to_datetime(dates_df.last_update_date_data, 
+dates_df = private_df[private_df.uid.isin(['gzid-z3nh','5tqd-u88y','qj2z-ibhs'])]\
+                [['uid', 'last_data_updated_date']]
+dates_df['last_data_updated_date'] = pd.to_datetime(dates_df.last_data_updated_date, 
                                                      errors='coerce')\
                                             .dt.strftime("%Y-%m-%d")
 
-today_df = pd.DataFrame({'u_id':['NA'],
-                         'last_update_date_data':[date.today().strftime("%Y-%m-%d")],
+today_df = pd.DataFrame({'uid':['NA'],
+                         'last_data_updated_date':[date.today().strftime("%Y-%m-%d")],
                          'Source':['1. Dashboard']})
 
-dates_df.loc[dates_df.u_id=='gzid-z3nh','Source'] = '2. Row Count'
-dates_df.loc[dates_df.u_id=='5tqd-u88y','Source'] = '3. Published Asset Inventory'
-dates_df.loc[dates_df.u_id=='qj2z-ibhs','Source'] = '4. Open Plan Tracker'
+dates_df.loc[dates_df.uid=='gzid-z3nh','Source'] = '2. Row Count'
+dates_df.loc[dates_df.uid=='5tqd-u88y','Source'] = '3. Published Asset Inventory'
+dates_df.loc[dates_df.uid=='qj2z-ibhs','Source'] = '4. Open Plan Tracker'
 dates_df = dates_df.append(today_df)
 dates_df.reset_index(inplace=True, drop=True)
-dates_df = dates_df[['Source', 'last_update_date_data']]
+dates_df = dates_df[['Source', 'last_data_updated_date']]
+dates_df.rename(columns={'last_data_updated_date':'updated_on'},inplace=True)
 
 
 #### Step 3. Get number of datasets
@@ -72,13 +73,21 @@ public_df = public_df[[
  'last_update_date_data']]
 
 # asset inventory has "type" of asset column (published view does not)
-private_df = private_df[['u_id','type','derived_view']]
-public_df = public_df.merge(private_df,on='u_id',how='left')
+private_df = private_df[['uid','type','audience','derived_view','parent_uid']]
+public_df = public_df.merge(private_df,
+                            left_on='u_id',
+                            right_on='uid',
+                            how='left')
 
 # Create merged_filter, the dataframe that has only assets defined as datasets
 # ZF approved the list
-dataset_filter_list = ['dataset','filter', 'gis map']
+dataset_filter_list = ['dataset','filter', 'gis map', 'map']
 public_filtered_df = public_df[public_df.type.isin(dataset_filter_list)]
+
+# exclude assets derived from public datasets
+parent_uids = public_filtered_df[public_filtered_df['derived_view']==True]['parent_uid']
+exc_parent_uids = private_df[private_df['uid'].isin(parent_uids) & (private_df['audience']=='public')]['uid']
+public_filtered_df = public_filtered_df[~public_filtered_df['parent_uid'].isin(exc_parent_uids)]
 
 #### Step 4. Create one main dataset-level dataframe
 
@@ -124,7 +133,7 @@ quantity_dataset_df = quantity_dataset_df[keep_quant_cols]
 #### Step 5. Create one main agency-level dataframe
 
 # if agency is missing, create NA category
-quantity_dataset_df['agency'] = quantity_dataset_df.agency.fillna('NA')
+quantity_dataset_df['agency'] = quantity_dataset_df.agency.fillna('Not filled out')
 quantity_agency_df = quantity_dataset_df.groupby(['agency'])\
                             .agg({'u_id':'size','numrows':'sum'})\
                             .reset_index()\
@@ -175,6 +184,7 @@ def assign_dataframe_statuses(data):
         (df['update_frequency']=='Biweekly'),
         (df['update_frequency']=='Several times per day'),
         (df['update_frequency']=='Hourly'),
+        (df['update_frequency']=='Every four years')
     ]
     status_choices = [
         pd.Timedelta('365 days'),
@@ -188,17 +198,16 @@ def assign_dataframe_statuses(data):
         pd.Timedelta('182 days'),
         pd.Timedelta('4 days'),
         pd.Timedelta('25 hours'),
-        pd.Timedelta('25 hours')
+        pd.Timedelta('25 hours'),
+        pd.Timedelta('1460 days')
         ]
+    
     
     df['update_threshold'] = np.select(status_conditions, status_choices, default=pd.Timedelta('50000 days'))
     
     # calculate when asset should have been last updated
     df['last_updated_ago'] = pd.to_datetime(date.today()) - df.last_update_date_data_dt
-    
-    # assign status to automated, dictionary and geocoded columns
-    df['fresh'] = np.where((df['last_updated_ago']>=df['update_threshold']),'No','Yes')
-    
+    df['fresh'] = np.where((df['last_updated_ago']>=df['update_threshold']),'No','Yes')   
     df.drop(columns=['update_threshold'],inplace=True)
     
     return df
@@ -206,7 +215,7 @@ def assign_dataframe_statuses(data):
 freshness_df = assign_dataframe_statuses(freshness_df)
 
 # ensure that datasets with missing agency value are accounted for
-freshness_df['agency'] = freshness_df.agency.fillna('NA')
+freshness_df['agency'] = freshness_df.agency.fillna('Not filled out')
 
 keep_fresh_cols = [
  'u_id',
@@ -237,7 +246,8 @@ freshness_agency_df = freshness_df.groupby(['agency'])\
                                 .merge(fresh_count_df, on='agency',how='left')
 
 # calculate percent freshly updated
-freshness_agency_df['fresh_pct'] = freshness_agency_df.fresh_count / freshness_agency_df.total_auto_count
+freshness_agency_df['fresh_pct'] = freshness_agency_df.fresh_count.fillna(0)/ \
+                                   freshness_agency_df.total_auto_count
 
 #### COMPLIANCE ####
 
@@ -326,16 +336,28 @@ tracker_12mo_dataset_df['agency'] = np.where((tracker_12mo_dataset_df.release_st
                                                   tracker_12mo_dataset_df.agency_x)
 tracker_12mo_dataset_df.drop(columns=['agency_x', 'agency_y'], inplace=True)
 
+# keep published assets included in the filtered public dataset
+# keep assets scheduled for release with type NA
+tracker_12mo_dataset_df = tracker_12mo_dataset_df[tracker_12mo_dataset_df['u_id'].isin(quantity_dataset_df['u_id']) | \
+                                                  (tracker_12mo_dataset_df['release_status']=='Scheduled for release')]
+
 #### Step 3. Build agency-level dataset
+# count number of overdue for release datasets
+agency_overdue_df = tracker_12mo_dataset_df[tracker_12mo_dataset_df['release_status']=='Scheduled for release'].groupby(['agency']).size().reset_index()
+agency_overdue_df.rename(columns={0:'overdue_datasets'},inplace=True)
+
 tracker_12mo_agency_df = tracker_12mo_dataset_df.groupby(['agency'])\
                                         .agg({'agency':'size',
                                               'within_grace_period_num':'sum'})\
                                         .rename(columns={'agency':'tracker_dataset_count',
                                                          'within_grace_period_num':'tracker_count_ontime'})\
-                                        .reset_index()
+                                        .merge(agency_overdue_df, on='agency', how='left')\
+                                        .reset_index(drop=True)\
+                                        .fillna(0)
 
 # calculate percent released on time
-tracker_12mo_agency_df['pct_ontime'] = tracker_12mo_agency_df.tracker_count_ontime/tracker_12mo_agency_df.tracker_dataset_count
+tracker_12mo_agency_df['pct_ontime'] =  tracker_12mo_agency_df.tracker_count_ontime.fillna(0) / \
+                                        tracker_12mo_agency_df.tracker_dataset_count
 
 #### DASHBOARD ####
 
@@ -353,18 +375,23 @@ cw_freshness = freshness_dataset_df[freshness_dataset_df.fresh=='Yes'].shape[0]/
 cw_compliance = tracker_12mo_dataset_df.within_grace_period_num.sum()/ \
                 tracker_12mo_dataset_df.shape[0]
 
+# number of assets that were supposed to be released but were not as of today 
+cw_overdue = tracker_12mo_dataset_df[tracker_12mo_dataset_df['release_status']=='Scheduled for release'].shape[0]
+
 citywide = pd.DataFrame([['Citywide',
                          cw_numrows,
                          cw_numdatasets,
                          cw_freshness,
-                         cw_compliance]],
+                         cw_compliance,
+                         cw_overdue]],
                        columns=['Scope',
                                 'Number of published rows',
                                 'Number of published datasets',
                                 'Percent of datasets updated on time',
-                                'Percent of datasets released on time in the last 12 months'])
+                                'Percent of datasets released on time in the last 12 months',
+                                'Number of overdue datasets'])
 
-citywide = citywide.fillna('NA')
+# citywide = citywide.fillna('NA')
 
 #### Step 2. Build complete agency-level dataset
 
@@ -375,7 +402,15 @@ all_agency_df = quantity_agency_df.merge(freshness_agency_df,
                                         on='agency',
                                         how='outer')
 
-all_agency_df = all_agency_df.fillna('NA')
+all_agency_df['overdue_datasets'] = all_agency_df['overdue_datasets'].fillna(0)
+all_agency_df['numdatasets'] = all_agency_df['numdatasets'].fillna(0)
+all_agency_df['numrows'] = all_agency_df['numrows'].fillna(0)
+all_agency_df['total_auto_count'] = all_agency_df['total_auto_count'].fillna(0)
+all_agency_df['fresh_count'] = all_agency_df['fresh_count'].fillna(0)
+all_agency_df['tracker_dataset_count'] = all_agency_df['tracker_dataset_count'].fillna(0)
+all_agency_df['tracker_count_ontime'] = all_agency_df['tracker_count_ontime'].fillna(0)
+all_agency_df['fresh_pct'] = all_agency_df['fresh_pct'].fillna('No automated datasets')
+all_agency_df['pct_ontime'] = all_agency_df['pct_ontime'].fillna('No datasets in the tracker')
 
 #### Step 3. Build complete dataset-level dataset
 
@@ -431,7 +466,10 @@ all_datasets_df = all_datasets_df[[
  'release_date_dt_fix',
  'within_grace_period']]
 
-all_datasets_df = all_datasets_df.fillna('NA')
+all_datasets_df['fresh'] = all_datasets_df['fresh'].fillna('NA')
+all_datasets_df['within_grace_period'] = all_datasets_df['within_grace_period'].fillna('Not in Open Plan Tracker')
+
+# all_datasets_df = all_datasets_df.fillna('NA')
 
 #### Step 4. Upload data to Google Spreadsheets
 
@@ -450,3 +488,7 @@ print('Upload complete for datasets dataset')
 credentials.gs_upload(df=dates_df, 
                     wks_name='_dates_')
 print('Upload complete for dates dataset')
+
+print(f"Dashboard was updated on: {date.today()}")
+
+## execute script with $ ~/ODD/dashboard_v3.py --noauth_local_webserver

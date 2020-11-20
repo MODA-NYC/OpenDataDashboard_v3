@@ -4,3 +4,4 @@ numpy==1.18.1
 pandas==0.25.3
 requests==2.22.0
 sodapy==1.5.5
+google-oauth2-tool==0.0.3

@@ -4,6 +4,7 @@ import requests
 from requests.auth import HTTPBasicAuth
 
 import os
+import json
 
 # depreciated
 #from oauth2client.service_account import ServiceAccountCredentials
@@ -20,15 +21,8 @@ socrata_key = 'dpovnwa4lwoaka48233qr8b2f'
 socrata_secret = '4taqkebdfxsaaf7sqo0qgze23enewwn50ro9jyjk9ury6qcen1'
 
 #### Google Sheets
-#gs_scope = ['https://spreadsheets.google.com/feeds']
-gs_scope = ['https://spreadsheets.google.com/feeds',
-         'https://www.googleapis.com/auth/drive']
 
-## IMPORTANT: adjust the path as necessary
-# gs_credentials = ServiceAccountCredentials.from_json_keyfile_name('/media/sf_VBUM_FCTF/ODD/ODD_v3/dashboard/Jupyter_and_Google_Sheets-12b039cdb296.json', gs_scope)
-
-gs_credentials = Credentials.from_service_account_file('Jupyter_and_Google_Sheets-12b039cdb296.json',scopes=gs_scope)
-
+## Google Spreadsheet key from the URL
 gs_key = '1PyZUeeo_lY3Ox6e_577aiPly_Bu0y9Vpc1_NWwe3pK4'
 
 #############################################################################################
@@ -45,10 +39,14 @@ gs_key = '1PyZUeeo_lY3Ox6e_577aiPly_Bu0y9Vpc1_NWwe3pK4'
 ## 2. share it with client_email found in json credentials file
 ## "client_email": "google-sheets@<xxx>.iam.gserviceaccount.com"
 ## 3. copy spreadsheet key from the URL into gs_key
+## 
+## Authentication:
+## https://df2gspread.readthedocs.io/en/latest/overview.html
+## Follow instructions in the "Access Credentials" section
 #############################################################################################
 
 
-def call_socrata_api(uid, limit=1000000):
+def call_socrata_api(uid, limit=100000):
     """
     Calls Soctata API to exctract a dataset based on its id
 
@@ -62,11 +60,13 @@ def call_socrata_api(uid, limit=1000000):
 
     r = requests.get(socrata_url + uid + '.json?' + num_records, 
                     auth=HTTPBasicAuth(socrata_key, socrata_secret))
-    asset_df = pd.read_json(r.text)
+    if r.status_code != 200:
+        raise Exception('Error getting data')
+    asset_df = pd.read_json(json.dumps(r.json()))
 
     return asset_df
 
-def get_socrata_row_count(limit=1000000):
+def get_socrata_row_count(limit=10000):
     """
     Calls Soctata API to exctract Dataset Facts
     https://data.cityofnewyork.us/dataset/Daily-Dataset-Facts/gzid-z3nh
@@ -90,7 +90,7 @@ def get_socrata_row_count(limit=1000000):
 
     last_update_date = pd.to_datetime(last_update_date.values[0]).strftime("%Y-%m-%d") + "T00:00:00.000"
    
-    #print(f"Dataset facts dataset was last updated on: {last_update_date}")
+    print(f"Dataset facts dataset was last updated on: {last_update_date}")
     
     # pull the data only for the last updated date
     
@@ -99,7 +99,9 @@ def get_socrata_row_count(limit=1000000):
 
     r = requests.get(socrata_url + uid + ".json?" + num_records + filters, 
                     auth=HTTPBasicAuth(socrata_key, socrata_secret))
-    facts_df = pd.read_json(r.text)
+    if r.status_code != 200:
+        raise Exception('Error getting data')
+    facts_df = pd.read_json(json.dumps(r.json()))
     
     return last_update_date, facts_df
 
@@ -116,25 +118,8 @@ def gs_upload(df, wks_name):
     d2g.upload(df=df,
                gfile=gs_key, 
                wks_name=wks_name, 
-               credentials=gs_credentials, 
                row_names=False)
 
-def getFromGS(wks_name):
-    """
-    Pulls data from Google Spreadshhet
-    
-    Args:
-        gs_key: str, spreadhsheet key
-        wks_name: str, worksheet name    
-        
-    Returns:
-        pandas dataframe
-    """
-    
-    gc = gspread.authorize(gs_credentials)
-    workbook = gc.open_by_key(gs_key)
-    worksheet = workbook.worksheet(wks_name)
-    return pd.DataFrame(worksheet.get_all_values())
 
 
 
