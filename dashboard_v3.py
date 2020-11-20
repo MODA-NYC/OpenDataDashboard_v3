@@ -391,8 +391,6 @@ citywide = pd.DataFrame([['Citywide',
                                 'Percent of datasets released on time in the last 12 months',
                                 'Number of overdue datasets'])
 
-# citywide = citywide.fillna('NA')
-
 #### Step 2. Build complete agency-level dataset
 
 all_agency_df = quantity_agency_df.merge(freshness_agency_df, 
@@ -468,8 +466,6 @@ all_datasets_df = all_datasets_df[[
 
 all_datasets_df['fresh'] = all_datasets_df['fresh'].fillna('NA')
 all_datasets_df['within_grace_period'] = all_datasets_df['within_grace_period'].fillna('Not in Open Plan Tracker')
-
-# all_datasets_df = all_datasets_df.fillna('NA')
 
 #### Step 4. Upload data to Google Spreadsheets
 

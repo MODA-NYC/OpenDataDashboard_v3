@@ -6,8 +6,6 @@ from requests.auth import HTTPBasicAuth
 import os
 import json
 
-# depreciated
-#from oauth2client.service_account import ServiceAccountCredentials
 from google.oauth2.service_account import Credentials
 
 import gspread
@@ -27,20 +25,7 @@ gs_key = '1PyZUeeo_lY3Ox6e_577aiPly_Bu0y9Vpc1_NWwe3pK4'
 
 #############################################################################################
 ## References: 
-## 1. https://socraticowl.com/post/integrate-google-sheets-and-jupyter-notebooks/
-## This is a step by step guide to make Jupyter Notebooks and Google Sheets to communicate
-## If data is pulled from MODA's GA account, there is no need to replicate them.
-## The communication has been established!
-## 2. https://df2gspread.readthedocs.io/en/latest/examples.html
-## This is a general reference.
-## 
-## Google Spreadsheet:
-## 1. create new or use existing Google Sheet
-## 2. share it with client_email found in json credentials file
-## "client_email": "google-sheets@<xxx>.iam.gserviceaccount.com"
-## 3. copy spreadsheet key from the URL into gs_key
-## 
-## Authentication:
+## Google Spreadsheet Authentication:
 ## https://df2gspread.readthedocs.io/en/latest/overview.html
 ## Follow instructions in the "Access Credentials" section
 #############################################################################################
