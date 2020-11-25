@@ -13,31 +13,31 @@ import credentials
 
 #### QUANTITY ####
 
-#### Step 1. Get number of rows
+#### Step 1. Load Published Data Asset Inventory
 
-# pull the data with row counts and the date of its latest update
-# https://data.cityofnewyork.us/dataset/Daily-Dataset-Facts/gzid-z3nh
-row_count_updated, row_count_df = credentials.get_socrata_row_count()
-dfacts = row_count_df[['asset_title',
-                       'asset_id_4x4',
-                       'agency',
-                       'asset_rows']]\
-                .drop_duplicates(subset=['asset_id_4x4'])
-dfacts['asset_rows'] = pd.to_numeric(dfacts.asset_rows)
+# Local Law 251 of 2017: Published Data Asset Inventory
+# https://data.cityofnewyork.us/City-Government/Local-Law-251-of-2017-Published-Data-Asset-Invento/5tqd-u88y
+public_df = credentials.call_socrata_api('5tqd-u88y')
 
-dfacts_agency_df = dfacts.groupby(['agency'])['asset_rows']\
-                         .sum()\
-                         .reset_index()\
-                         .rename(columns={'asset_rows':'numrows'})
+public_cols = [
+    'datasetinformation_agency',
+    'name',
+    'uid',
+    'url',
+    'update_datemadepublic',
+    'update_automation',
+    'update_updatefrequency',
+    'last_data_updated_date',
+    'type',
+    'row_count'
+]
+public_df = public_df[public_cols]
+
 
 #### Step 2. Get dates of the data updates
 
-# Asset Inventory (Private Access)
-# https://data.cityofnewyork.us/dataset/Asset-Inventory/kvci-ugf9
-private_df = credentials.call_socrata_api('kvci-ugf9')
-
 # get the dates each of datasets has been updated
-dates_df = private_df[private_df.uid.isin(['gzid-z3nh','5tqd-u88y','qj2z-ibhs'])]\
+dates_df = public_df[public_df.uid.isin(['5tqd-u88y','qj2z-ibhs'])]\
                 [['uid', 'last_data_updated_date']]
 dates_df['last_data_updated_date'] = pd.to_datetime(dates_df.last_data_updated_date, 
                                                      errors='coerce')\
@@ -46,117 +46,95 @@ dates_df['last_data_updated_date'] = pd.to_datetime(dates_df.last_data_updated_d
 today_df = pd.DataFrame({'uid':['NA'],
                          'last_data_updated_date':[date.today().strftime("%Y-%m-%d")],
                          'Source':['1. Dashboard']})
-
-dates_df.loc[dates_df.uid=='gzid-z3nh','Source'] = '2. Row Count'
-dates_df.loc[dates_df.uid=='5tqd-u88y','Source'] = '3. Published Asset Inventory'
-dates_df.loc[dates_df.uid=='qj2z-ibhs','Source'] = '4. Open Plan Tracker'
+dates_df.loc[dates_df.uid=='5tqd-u88y','Source'] = '2. Published Asset Inventory'
+dates_df.loc[dates_df.uid=='qj2z-ibhs','Source'] = '3. Open Plan Tracker'
 dates_df = dates_df.append(today_df)
 dates_df.reset_index(inplace=True, drop=True)
 dates_df = dates_df[['Source', 'last_data_updated_date']]
 dates_df.rename(columns={'last_data_updated_date':'updated_on'},inplace=True)
 
 
-#### Step 3. Get number of datasets
+#### Step 3. Filter out assets
 
-# Local Law 251 of 2017: Published Data Asset Inventory
-# https://data.cityofnewyork.us/City-Government/Local-Law-251-of-2017-Published-Data-Asset-Invento/5tqd-u88y
-public_df = credentials.call_socrata_api('5tqd-u88y')
-
-public_df = public_df[[
- 'agency',
- 'name',
- 'u_id',
- 'dataset_link',
- 'date_made_public',
- 'automation',
- 'update_frequency',
- 'last_update_date_data']]
-
-# asset inventory has "type" of asset column (published view does not)
-private_df = private_df[['uid','type','audience','derived_view','parent_uid']]
-public_df = public_df.merge(private_df,
-                            left_on='u_id',
-                            right_on='uid',
-                            how='left')
+# load Asset Inventory (Private Access)
+# https://data.cityofnewyork.us/dataset/Asset-Inventory/kvci-ugf9
+private_df = credentials.call_socrata_api('kvci-ugf9')
+private_df = private_df[['uid','derived_view','parent_uid']]
+public_df = public_df.merge(private_df,on='uid',how='left')
 
 # Create merged_filter, the dataframe that has only assets defined as datasets
 # ZF approved the list
-dataset_filter_list = ['dataset','filter', 'gis map', 'map']
+dataset_filter_list = ['dataset','filter','map']
 public_filtered_df = public_df[public_df.type.isin(dataset_filter_list)]
 
-# exclude assets derived from public datasets
+## remove derived assets if parent asset is public
+# get parent ids for derived assets
 parent_uids = public_filtered_df[public_filtered_df['derived_view']==True]['parent_uid']
-exc_parent_uids = private_df[private_df['uid'].isin(parent_uids) & (private_df['audience']=='public')]['uid']
+# get ids for the assets derived from public assets
+exc_parent_uids = public_filtered_df[public_filtered_df['uid'].isin(parent_uids)]['uid']
+# remove derived assets if parent asset is public
 public_filtered_df = public_filtered_df[~public_filtered_df['parent_uid'].isin(exc_parent_uids)]
+
 
 #### Step 4. Create one main dataset-level dataframe
 
-# extract URL
-public_filtered_df['dataset_link'] = public_filtered_df['dataset_link']\
-                                            .apply(lambda x: list(x.values())[0])
+# fix one date typo
+public_filtered_df.loc[public_filtered_df['update_datemadepublic']=='August 9, 2-019',\
+                       'update_datemadepublic'] = 'August 9, 2019'
 
 # convert to date
-# fix one date typo
-public_filtered_df.loc[public_filtered_df['date_made_public']=='August 9, 2-019',\
-                       'date_made_public'] = 'August 9, 2019'
-
-public_filtered_df['date_made_public_dt'] = pd.to_datetime(
-                                            pd.to_datetime(public_filtered_df['date_made_public'],
+public_filtered_df['update_datemadepublic'] = pd.to_datetime(
+                                            pd.to_datetime(public_filtered_df['update_datemadepublic'],
                                                            errors='coerce')\
                                             .dt.strftime('%m/%d/%Y'), format=('%m/%d/%Y'))
-public_filtered_df['last_update_date_data_dt'] = pd.to_datetime(
-                                                 pd.to_datetime(public_filtered_df['last_update_date_data'])\
+public_filtered_df['last_data_updated_date'] = pd.to_datetime(
+                                                 pd.to_datetime(public_filtered_df['last_data_updated_date'])\
                                                  .dt.strftime('%m/%d/%Y'))
 
-public_filtered_df.drop(columns=['date_made_public','last_update_date_data'],inplace=True)
+# if agency is missing, create NA category
+public_filtered_df['datasetinformation_agency'] = public_filtered_df['datasetinformation_agency'].fillna('Not filled out')
+public_filtered_df.loc[public_filtered_df['datasetinformation_agency']=='','datasetinformation_agency'] = 'Not filled out'
 
-# append number of rows
-quantity_dataset_df = public_filtered_df.merge(dfacts[['asset_id_4x4','asset_rows']], 
-                                           left_on='u_id',
-                                           right_on='asset_id_4x4',
-                                           how='left')
-quantity_dataset_df.rename(columns={'asset_rows':'numrows'}, inplace=True)
-
+# keep only required columns
 keep_quant_cols=[
- 'u_id',
- 'agency',
+ 'uid',
+ 'datasetinformation_agency',
  'name',
- 'dataset_link',
+ 'url',
  'type',
- 'date_made_public_dt',
- 'last_update_date_data_dt',
- 'numrows'
+ 'update_datemadepublic',
+ 'last_data_updated_date',
+ 'row_count'
 ]
+quantity_dataset_df = public_filtered_df[keep_quant_cols]
 
-quantity_dataset_df = quantity_dataset_df[keep_quant_cols]
 
 #### Step 5. Create one main agency-level dataframe
 
-# if agency is missing, create NA category
-quantity_dataset_df['agency'] = quantity_dataset_df.agency.fillna('Not filled out')
-quantity_agency_df = quantity_dataset_df.groupby(['agency'])\
-                            .agg({'u_id':'size','numrows':'sum'})\
+quantity_agency_df = quantity_dataset_df.groupby(['datasetinformation_agency'])\
+                            .agg({'uid':'size','row_count':'sum'})\
                             .reset_index()\
-                            .rename(columns={'u_id':'numdatasets'})
+                            .rename(columns={'uid':'numdatasets'})
+
 
 #### QUALITY (Data Freshness) ####
 
 #### Step 1. Build baseline dataset
 
 freshness_df = public_filtered_df[[
-    'agency',
+    'datasetinformation_agency',
     'name',
-    'u_id',
-    'update_frequency',
-    'dataset_link',
-    'date_made_public_dt',
-    'last_update_date_data_dt',
-    'automation']]
+    'uid',
+    'update_updatefrequency',
+    'url',
+    'update_datemadepublic',
+    'last_data_updated_date',
+    'update_automation']]
 
 # Remove datasets with update frequencies for which we cannot determine freshness
-freshness_df = freshness_df[(~freshness_df['update_frequency']\
+freshness_df = freshness_df[(~freshness_df['update_updatefrequency']\
                             .isin(['Historical Data', 'As needed'])) &\
-                             ~freshness_df['update_frequency'].isna()]\
+                             ~freshness_df['update_updatefrequency'].isna()]\
                             .reset_index(drop=True)
 
 def assign_dataframe_statuses(data):
@@ -168,23 +146,23 @@ def assign_dataframe_statuses(data):
     df = data.copy()
 
     # some values have spaces
-    df['update_frequency'] = df.update_frequency.str.strip()
+    df['update_updatefrequency'] = df['update_updatefrequency'].str.strip()
     
     # assign time by update frequency
     status_conditions = [
-        (df['update_frequency']=='Annually'),
-        (df['update_frequency']=='Monthly'),
-        (df['update_frequency']=='Quarterly'),
-        (df['update_frequency']=='Daily'),
-        (df['update_frequency']=='Biannually'),
-        (df['update_frequency']=='Weekly'),
-        (df['update_frequency']=='Triannually'),
-        (df['update_frequency']=='Weekdays'),
-        (df['update_frequency']=='2 to 4 times per year'),
-        (df['update_frequency']=='Biweekly'),
-        (df['update_frequency']=='Several times per day'),
-        (df['update_frequency']=='Hourly'),
-        (df['update_frequency']=='Every four years')
+        (df['update_updatefrequency']=='Annually'),
+        (df['update_updatefrequency']=='Monthly'),
+        (df['update_updatefrequency']=='Quarterly'),
+        (df['update_updatefrequency']=='Daily'),
+        (df['update_updatefrequency']=='Biannually'),
+        (df['update_updatefrequency']=='Weekly'),
+        (df['update_updatefrequency']=='Triannually'),
+        (df['update_updatefrequency']=='Weekdays'),
+        (df['update_updatefrequency']=='2 to 4 times per year'),
+        (df['update_updatefrequency']=='Biweekly'),
+        (df['update_updatefrequency']=='Several times per day'),
+        (df['update_updatefrequency']=='Hourly'),
+        (df['update_updatefrequency']=='Every four years')
     ]
     status_choices = [
         pd.Timedelta('365 days'),
@@ -202,52 +180,53 @@ def assign_dataframe_statuses(data):
         pd.Timedelta('1460 days')
         ]
     
-    
     df['update_threshold'] = np.select(status_conditions, status_choices, default=pd.Timedelta('50000 days'))
     
     # calculate when asset should have been last updated
-    df['last_updated_ago'] = pd.to_datetime(date.today()) - df.last_update_date_data_dt
-    df['fresh'] = np.where((df['last_updated_ago']>=df['update_threshold']),'No','Yes')   
+    df['last_updated_ago'] = pd.to_datetime(date.today()) - df['last_data_updated_date']
+    
+    # assign status to automated, dictionary and geocoded columns
+    df['fresh'] = np.where((df['last_updated_ago']>=df['update_threshold']),'No','Yes')
+    
     df.drop(columns=['update_threshold'],inplace=True)
     
     return df
 
 freshness_df = assign_dataframe_statuses(freshness_df)
 
-# ensure that datasets with missing agency value are accounted for
-freshness_df['agency'] = freshness_df.agency.fillna('Not filled out')
-
 keep_fresh_cols = [
- 'u_id',
- 'agency',
+ 'uid',
+ 'datasetinformation_agency',
  'name',
- 'dataset_link',
- 'automation',
- 'update_frequency',
- 'last_update_date_data_dt',
+ 'url',
+ 'update_automation',
+ 'update_updatefrequency',
+ 'last_data_updated_date',
  'fresh'    
 ]
 
 freshness_dataset_df = freshness_df[keep_fresh_cols]
 
+
 #### Step 2. Calculate average data freshness by agency
 
 # get the count of fresh dataset by agency
-fresh_count_df = freshness_df[freshness_df.fresh=='Yes'].groupby(['agency'])\
+fresh_count_df = freshness_df[freshness_df['fresh']=='Yes'].groupby(['datasetinformation_agency'])\
                                 .size()\
                                 .reset_index()\
                                 .rename(columns={0:'fresh_count'})
 
 # get the total count of datasets by agency (excluding historical and as needed)
-freshness_agency_df = freshness_df.groupby(['agency'])\
+freshness_agency_df = freshness_df.groupby(['datasetinformation_agency'])\
                                 .size()\
                                 .reset_index()\
                                 .rename(columns={0:'total_auto_count'})\
-                                .merge(fresh_count_df, on='agency',how='left')
+                                .merge(fresh_count_df, on='datasetinformation_agency',how='left')
 
 # calculate percent freshly updated
-freshness_agency_df['fresh_pct'] = freshness_agency_df.fresh_count.fillna(0)/ \
-                                   freshness_agency_df.total_auto_count
+freshness_agency_df['fresh_pct'] = freshness_agency_df['fresh_count'].fillna(0) / \
+                                    freshness_agency_df['total_auto_count']
+
 
 #### COMPLIANCE ####
 
@@ -263,42 +242,44 @@ release_status_filter = [
     'Scheduled for release',
     'Under Review'
 ]
-tracker_df = tracker_df[tracker_df.release_status.isin(release_status_filter)]
+tracker_df = tracker_df[tracker_df['release_status'].isin(release_status_filter)]
+
+# convert dates to dates
+tracker_df['original_plan_date'] = pd.to_datetime(tracker_df['original_plan_date'])
+tracker_df['latest_plan_date'] = pd.to_datetime(tracker_df['latest_plan_date'])
+tracker_df['release_date'] = pd.to_datetime(tracker_df['release_date'])
+
+# number of days between release and planned date
+tracker_df['plan_to_release'] = (tracker_df['release_date'] - tracker_df['latest_plan_date']).dt.days
 
 # apply grace period for release date
 grace_period_days = 14
 today = date.today()
-
-tracker_df['original_plan_date_dt'] = pd.to_datetime(tracker_df.original_plan_date)
-tracker_df['latest_plan_date_dt'] = pd.to_datetime(tracker_df.latest_plan_date)
-tracker_df['release_date_dt'] = pd.to_datetime(tracker_df.release_date)
-
-# number of days between release and planned date
-tracker_df['plan_to_release'] = (tracker_df.release_date_dt - tracker_df.latest_plan_date_dt).dt.days
 
 # create a check if released on time
 tracker_df['within_grace_period'] = np.where((tracker_df['plan_to_release'] < grace_period_days), 'Yes', 'No')
 tracker_df['within_grace_period_num'] = tracker_df['plan_to_release'] < grace_period_days
 
 # subset datasets that were supposed to be released in the last 12 months
-tracker_df['last_12_months'] = ((pd.to_datetime(today) - tracker_df.latest_plan_date_dt).dt.days < 365) & \
-                                (tracker_df.latest_plan_date_dt <= pd.to_datetime(today))
+tracker_df['last_12_months'] = ((pd.to_datetime(today) - tracker_df['latest_plan_date']).dt.days < 365) & \
+                                (tracker_df['latest_plan_date'] <= pd.to_datetime(today))
 
-tracker_df['dataset_link'] = tracker_df['url1']\
-                                            .apply(lambda x: list(x.values())[0] \
+tracker_df['url'] = tracker_df['url1'].apply(lambda x: list(x.values())[0] \
                                                    if type(x) is dict else 'NA')
+tracker_df.drop(columns=['url1'],inplace=True)
+
 # drop duplicates for released datasets
 # keep the one with the oldest release date
 tracker_df = tracker_df[~tracker_df.u_id.isna()]\
-                                .sort_values(by='release_date_dt')\
+                                .sort_values(by='release_date')\
                                 .drop_duplicates(subset=['u_id'], keep='first')\
-                                .append(tracker_df[tracker_df.u_id.isna()])
+                                .append(tracker_df[tracker_df['u_id'].isna()])
 
+tracker_12mo_df = tracker_df[tracker_df['last_12_months']]
 
-tracker_12mo_df = tracker_df[tracker_df.last_12_months]
+tracker_12mo_df['latest_plan_date'] = tracker_12mo_df['latest_plan_date'].dt.strftime("%Y-%m-%d")
+tracker_12mo_df['release_date'] = tracker_12mo_df['release_date'].dt.strftime("%Y-%m-%d")
 
-tracker_12mo_df['latest_plan_date_dt'] = tracker_12mo_df.latest_plan_date_dt.dt.strftime("%Y-%m-%d")
-tracker_12mo_df['release_date_dt'] = tracker_12mo_df.release_date_dt.dt.strftime("%Y-%m-%d")
 
 #### Step 2. Build dataset-level dataset
 
@@ -307,72 +288,68 @@ keep_tracker_cols = [
  'agency',
  'dataset',
  'dataset_description',
- 'latest_plan_date_dt',
+ 'latest_plan_date',
  'release_status',
- 'release_date_dt',
+ 'release_date',
  'within_grace_period',
  'within_grace_period_num',
- 'dataset_link'
+ 'url'
 ]
 
 tracker_12mo_dataset_df = tracker_12mo_df[keep_tracker_cols]
 
-# drop duplicates for released datasets
-# keep the one with the oldest release date
-# tracker_12mo_dataset_clean_df = tracker_12mo_dataset_df[~tracker_12mo_dataset_df.u_id.isna()]\
-#                                 .sort_values(by='release_date_dt')\
-#                                 .drop_duplicates(subset=['u_id'], keep='first')\
-#                                 .append(tracker_12mo_dataset_df[tracker_12mo_dataset_df.u_id.isna()])
-
 # append type and agency from public inventory
-tracker_12mo_dataset_df = tracker_12mo_dataset_df.merge(public_df[['u_id','type','agency']], 
-                                                                    on='u_id',
+tracker_12mo_dataset_df = tracker_12mo_dataset_df.merge(public_df[['uid','type','datasetinformation_agency']], 
+                                                                    left_on='u_id',
+                                                                    right_on='uid',
                                                                     how='left')
 
 # update agency name to match public inventory (can only be done for already published datasets)
-tracker_12mo_dataset_df['agency'] = np.where((tracker_12mo_dataset_df.release_status=='Released') & \
-                                                   ~tracker_12mo_dataset_df.agency_y.isna(),
-                                                  tracker_12mo_dataset_df.agency_y,
-                                                  tracker_12mo_dataset_df.agency_x)
-tracker_12mo_dataset_df.drop(columns=['agency_x', 'agency_y'], inplace=True)
+tracker_12mo_dataset_df['datasetinformation_agency'] = np.where((tracker_12mo_dataset_df.release_status=='Released') & \
+                                                                ~tracker_12mo_dataset_df['datasetinformation_agency'].isna(),
+                                                                tracker_12mo_dataset_df['datasetinformation_agency'],
+                                                                tracker_12mo_dataset_df['agency'])
 
-# keep published assets included in the filtered public dataset
-# keep assets scheduled for release with type NA
-tracker_12mo_dataset_df = tracker_12mo_dataset_df[tracker_12mo_dataset_df['u_id'].isin(quantity_dataset_df['u_id']) | \
+# exclude assets that are not datasets, filters and gis maps
+# keeps assets scheduled for release with type NA
+
+tracker_12mo_dataset_df = tracker_12mo_dataset_df[tracker_12mo_dataset_df['u_id'].isin(quantity_dataset_df['uid']) | \
                                                   (tracker_12mo_dataset_df['release_status']=='Scheduled for release')]
+tracker_12mo_dataset_df.drop(columns=['u_id','agency'],inplace=True)
 
 #### Step 3. Build agency-level dataset
-# count number of overdue for release datasets
-agency_overdue_df = tracker_12mo_dataset_df[tracker_12mo_dataset_df['release_status']=='Scheduled for release'].groupby(['agency']).size().reset_index()
-agency_overdue_df.rename(columns={0:'overdue_datasets'},inplace=True)
 
-tracker_12mo_agency_df = tracker_12mo_dataset_df.groupby(['agency'])\
-                                        .agg({'agency':'size',
+# count number of overdue for release datasets
+agency_overdue_df = tracker_12mo_dataset_df[tracker_12mo_dataset_df['release_status']=='Scheduled for release']\
+                                .groupby(['datasetinformation_agency']).size().reset_index()\
+                                .rename(columns={0:'overdue_datasets'})
+
+tracker_12mo_agency_df = tracker_12mo_dataset_df.groupby(['datasetinformation_agency'])\
+                                        .agg({'datasetinformation_agency':'size',
                                               'within_grace_period_num':'sum'})\
-                                        .rename(columns={'agency':'tracker_dataset_count',
+                                        .rename(columns={'datasetinformation_agency':'tracker_dataset_count',
                                                          'within_grace_period_num':'tracker_count_ontime'})\
-                                        .merge(agency_overdue_df, on='agency', how='left')\
+                                        .merge(agency_overdue_df, on='datasetinformation_agency', how='left')\
                                         .reset_index(drop=True)\
                                         .fillna(0)
 
 # calculate percent released on time
-tracker_12mo_agency_df['pct_ontime'] =  tracker_12mo_agency_df.tracker_count_ontime.fillna(0) / \
-                                        tracker_12mo_agency_df.tracker_dataset_count
+tracker_12mo_agency_df['pct_ontime'] = tracker_12mo_agency_df['tracker_count_ontime'].fillna(0)/tracker_12mo_agency_df['tracker_dataset_count']
 
 #### DASHBOARD ####
 
 #### Step 1. Get citywide metrics
 
 # total number of rows
-cw_numrows = quantity_agency_df.numrows.sum()
+cw_numrows = quantity_agency_df['row_count'].sum()
 
 # total number of datasets
-cw_numdatasets = quantity_agency_df.numdatasets.sum()
+cw_numdatasets = quantity_agency_df['numdatasets'].sum()
 # percent updated on time
-cw_freshness = freshness_dataset_df[freshness_dataset_df.fresh=='Yes'].shape[0]/\
+cw_freshness = freshness_dataset_df[freshness_dataset_df['fresh']=='Yes'].shape[0]/\
                     freshness_df.shape[0]
 # percent released on time
-cw_compliance = tracker_12mo_dataset_df.within_grace_period_num.sum()/ \
+cw_compliance = tracker_12mo_dataset_df['within_grace_period_num'].sum()/ \
                 tracker_12mo_dataset_df.shape[0]
 
 # number of assets that were supposed to be released but were not as of today 
@@ -394,15 +371,15 @@ citywide = pd.DataFrame([['Citywide',
 #### Step 2. Build complete agency-level dataset
 
 all_agency_df = quantity_agency_df.merge(freshness_agency_df, 
-                                        on='agency',
+                                        on='datasetinformation_agency',
                                         how='outer')\
                                   .merge(tracker_12mo_agency_df, 
-                                        on='agency',
+                                        on='datasetinformation_agency',
                                         how='outer')
 
 all_agency_df['overdue_datasets'] = all_agency_df['overdue_datasets'].fillna(0)
 all_agency_df['numdatasets'] = all_agency_df['numdatasets'].fillna(0)
-all_agency_df['numrows'] = all_agency_df['numrows'].fillna(0)
+all_agency_df['numrows'] = all_agency_df['row_count'].fillna(0)
 all_agency_df['total_auto_count'] = all_agency_df['total_auto_count'].fillna(0)
 all_agency_df['fresh_count'] = all_agency_df['fresh_count'].fillna(0)
 all_agency_df['tracker_dataset_count'] = all_agency_df['tracker_dataset_count'].fillna(0)
@@ -410,62 +387,94 @@ all_agency_df['tracker_count_ontime'] = all_agency_df['tracker_count_ontime'].fi
 all_agency_df['fresh_pct'] = all_agency_df['fresh_pct'].fillna('No automated datasets')
 all_agency_df['pct_ontime'] = all_agency_df['pct_ontime'].fillna('No datasets in the tracker')
 
+# maintain columns names to load data seamlessly to GDS
+all_agency_df.rename(columns={'datasetinformation_agency':'agency'},inplace=True)
+all_agency_df = all_agency_df[[
+                'agency',
+                'numdatasets',
+                'numrows',
+                'total_auto_count',
+                'fresh_count',
+                'fresh_pct',
+                'tracker_dataset_count',
+                'tracker_count_ontime',
+                'overdue_datasets',
+                'pct_ontime'    
+]]
+
 #### Step 3. Build complete dataset-level dataset
 
 # aggregate freshness data and tracker data (for released datasets only)
-all_datasets_df = quantity_dataset_df.merge(freshness_dataset_df.drop(columns=
-                                                                      ['agency',
-                                                                      'name',
-                                                                      'dataset_link',
-                                                                      'last_update_date_data_dt']), 
-                                        on='u_id',
+all_datasets_df = quantity_dataset_df.merge(freshness_dataset_df[['uid',
+                                                                  'update_automation',
+                                                                  'update_updatefrequency',
+                                                                  'fresh']], 
+                                        on='uid',
                                         how='outer')\
-                                  .merge(tracker_12mo_dataset_df.drop(columns=
-                                                                            ['agency',
-                                                                             'dataset',
-                                                                             'type',
-                                                                             'dataset_link']), 
-                                        on='u_id',
+                                  .merge(tracker_12mo_dataset_df[['uid',
+                                                                  'dataset_description',
+                                                                  'latest_plan_date',   
+                                                                  'release_status',
+                                                                  'release_date',
+                                                                  'within_grace_period',
+                                                                  'within_grace_period_num']], 
+                                        on='uid',
                                         how='left')
 
 # append non-released datasets data
 # doing it as a separate step to keep more accurate data for released datasets
-all_datasets_df = all_datasets_df.append(tracker_12mo_dataset_df[~tracker_12mo_dataset_df.u_id.isin(all_datasets_df.u_id)])\
+all_datasets_df = all_datasets_df.append(tracker_12mo_dataset_df[~tracker_12mo_dataset_df['uid'].isin(all_datasets_df['uid'])])\
                                  .reset_index(drop=True)
 
 # merge name and dataset columns since they contain the same information
-all_datasets_df.loc[all_datasets_df.name.isna(),'name'] = all_datasets_df.dataset
+all_datasets_df.loc[all_datasets_df.name.isna(),'name'] = all_datasets_df['dataset']
 
 # merge automation/update data for "historical" and "as needed" datasets
-all_datasets_df = all_datasets_df.merge(public_df[['u_id','automation','update_frequency']], on='u_id', how='left')
-all_datasets_df['automation'] = all_datasets_df.automation_x
-all_datasets_df['update_frequency'] = all_datasets_df.update_frequency_x
-all_datasets_df.loc[all_datasets_df.automation_x.isna(),'automation'] = all_datasets_df.automation_y
-all_datasets_df.loc[all_datasets_df.update_frequency_x.isna(),'update_frequency'] = all_datasets_df.update_frequency_y
+all_datasets_df = all_datasets_df.merge(public_df[['uid','update_automation','update_updatefrequency']], on='uid', how='left')
+
+all_datasets_df['automation'] = np.where(all_datasets_df['update_automation_x'].isna(),
+                                         all_datasets_df['update_automation_y'],
+                                         all_datasets_df['update_automation_x'])
+all_datasets_df['update_frequency'] = np.where(all_datasets_df['update_updatefrequency_x'].isna(),
+                                         all_datasets_df['update_updatefrequency_y'],
+                                         all_datasets_df['update_updatefrequency_x'])
 
 # recode missing dates into string NA to properly read format in GDS
-all_datasets_df['release_date_dt_fix'] = pd.to_datetime(all_datasets_df.release_date_dt, errors='coerce')
+all_datasets_df['release_date_fix'] = pd.to_datetime(all_datasets_df['release_date'], errors='coerce')
 
-all_datasets_df = all_datasets_df[[
- 'agency',
- 'u_id',
- 'name',
- 'dataset_description',
- 'dataset_link',
- 'type',
- 'date_made_public_dt',
- 'numrows',
- 'automation',
- 'update_frequency',
- 'last_update_date_data_dt',
- 'fresh',
- 'latest_plan_date_dt',
- 'release_status',
- 'release_date_dt_fix',
- 'within_grace_period']]
-
-all_datasets_df['fresh'] = all_datasets_df['fresh'].fillna('NA')
+all_datasets_df['fresh'] = all_datasets_df['fresh'].fillna('No regular updates')
 all_datasets_df['within_grace_period'] = all_datasets_df['within_grace_period'].fillna('Not in Open Plan Tracker')
+
+# maintain columns names to load data seamlessly to GDS
+all_datasets_df.rename(columns={
+ 'datasetinformation_agency':'agency',
+ 'uid':'u_id',
+ 'url':'dataset_link',
+ 'update_datemadepublic':'date_made_public_dt',
+ 'row_count':'numrows',
+ 'last_data_updated_date':'last_update_date_data_dt',
+ 'latest_plan_date':'latest_plan_date_dt',
+ 'release_date_fix':'release_date_dt_fix'
+},inplace=True)
+
+all_datasets_df= all_datasets_df[[
+    'agency',
+    'u_id',
+    'name',
+    'dataset_description',
+    'dataset_link',
+    'type',
+    'date_made_public_dt',
+    'numrows',
+    'automation',
+    'update_frequency',
+    'last_update_date_data_dt',
+    'fresh',
+    'latest_plan_date_dt',
+    'release_status',
+    'release_date_dt_fix',
+    'within_grace_period'
+]]
 
 #### Step 4. Upload data to Google Spreadsheets
 
