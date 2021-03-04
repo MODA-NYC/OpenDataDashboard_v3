@@ -2,7 +2,7 @@ name: ODD
  
 on:
   schedule:
-    - cron: '6 21 * * *'
+    - cron: '20 21 * * *'
  
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
