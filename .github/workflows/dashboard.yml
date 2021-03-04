@@ -1,0 +1,26 @@
+name: ODD
+ 
+on:
+  schedule:
+    - cron: 30 9 * * *
+ 
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  build:
+    runs-on: ubuntu-18.04
+  env:
+    CREDENTIAL: ${​​{​​ secrets.GS_CRDENTIALS }​​}​​
+  steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v2
+      with:
+        python-version: '3.6.8'
+ 
+    - name: Install python dependencies
+        run: pip3 install requirements.txt
+ 
+    - name: Install Credential
+        run: python3 install_creds.py
+ 
+    - name: Run script
+        run: python3 dashboard_v3_gh.py
