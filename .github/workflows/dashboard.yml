@@ -2,14 +2,14 @@ name: ODD
  
 on:
   schedule:
-    - cron: '20 21 * * *'
+    - cron: '40 21 * * *'
  
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   build:
     runs-on: ubuntu-18.04
     env:
-      GS_CRDENTIALS: ${​​{​​ secrets.GS_CREDENTIALS }​​}​​
+      GS_CREDENTIALS: ${​​{​​ secrets.GS_CREDENTIALS }​​}​​
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python
