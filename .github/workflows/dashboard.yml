@@ -22,8 +22,8 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
   
-    - name: Install Credential
-        run: python3 install_creds.py
+    - name: Install Credentials
+      run: python install_creds.py
  
     - name: Run script
-        run: python3 dashboard_v3_gh.py
+      run: python dashboard_v3_gh.py
