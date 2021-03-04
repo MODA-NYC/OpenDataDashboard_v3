@@ -12,7 +12,7 @@ jobs:
     CREDENTIAL: ${​​{​​ secrets.GS_CRDENTIALS }​​}​​
   steps:
     - uses: actions/checkout@v2
-    
+
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
@@ -24,7 +24,7 @@ jobs:
         pip install -r requirements.txt
   
     - name: Install Credentials
-        run: python install_creds.py
+      run: python install_creds.py
  
     - name: Run script
-        run: python dashboard_v3_gh.py
+      run: python dashboard_v3_gh.py
