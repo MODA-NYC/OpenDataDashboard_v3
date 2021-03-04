@@ -3,13 +3,84 @@
 
 from datetime import date
 
-import warnings
-warnings.filterwarnings('ignore')
-
 import pandas as pd
 import numpy as np
 
-import credentials
+import warnings
+warnings.filterwarnings('ignore')
+
+
+##### LOADING CREDENTIALS #####
+import requests
+import json
+from io import StringIO
+from df2gspread import df2gspread as d2g
+
+#### Socrata and Google Sheets credentials are associated with modanycga@gmail.com
+
+#### Socrata
+socrata_url = "https://data.cityofnewyork.us/resource/"
+
+##### DELETE AUTHENTICATION AFTER NO NEED FOR PRIVATE #####
+from requests.auth import HTTPBasicAuth
+socrata_key = 'dpovnwa4lwoaka48233qr8b2f'
+socrata_secret = '4taqkebdfxsaaf7sqo0qgze23enewwn50ro9jyjk9ury6qcen1'
+
+#### Google Sheets
+
+## Google Spreadsheet key from the URL
+## DEV:
+gs_key = '1uTuneWixsOlm5Cq8uVUzedJCM3jqNWxZ_HOkM5zAljU'
+## PROD:
+# gs_key = '1PyZUeeo_lY3Ox6e_577aiPly_Bu0y9Vpc1_NWwe3pK4'
+
+#############################################################################################
+## References: 
+## Google Spreadsheet Authentication:
+## https://df2gspread.readthedocs.io/en/latest/overview.html
+## Follow instructions in the "Access Credentials" section
+#############################################################################################
+
+##### LOADING HELPER FUNCTIONS #####
+
+def call_socrata_api(uid, limit=100000):
+    """
+    Calls Soctata API to exctract a dataset based on its id
+
+    Args:
+        uid: str, Socrata id for the dataset to pull
+    Returns:
+        pandas df of the dataset
+    """
+
+    num_records = f"$limit={limit}"
+
+    # r = requests.get(socrata_url + uid + '.json?' + num_records)
+    r = requests.get(socrata_url + uid + '.json?' + num_records, 
+                    auth=HTTPBasicAuth(socrata_key, socrata_secret))
+    if r.status_code != 200:
+        raise Exception('Error getting data')
+    asset_df = pd.read_json(StringIO(json.dumps(r.json())))
+
+    return asset_df
+
+def gs_upload(df, wks_name):
+    """
+    Uploads df to Google Spreadsheets
+    
+    Args:
+        gs_key: str, spreadhsheet key
+        df: pandas dataframe to upload
+        wks_name: str, worksheet name
+    """
+
+    d2g.upload(df=df,
+               gfile=gs_key, 
+               wks_name=wks_name, 
+               row_names=False)
+
+
+########## DASHBOARD ##########
 
 #### QUANTITY ####
 
@@ -17,7 +88,7 @@ import credentials
 
 # Local Law 251 of 2017: Published Data Asset Inventory
 # https://data.cityofnewyork.us/City-Government/Local-Law-251-of-2017-Published-Data-Asset-Invento/5tqd-u88y
-public_df = credentials.call_socrata_api('5tqd-u88y')
+public_df = call_socrata_api('5tqd-u88y')
 
 public_cols = [
     'datasetinformation_agency',
@@ -31,6 +102,11 @@ public_cols = [
     'type',
     'row_count'
 ]
+
+#### ADD THESE TO public_cols #####
+    # 'derived_view',
+    # 'parent_uid'
+
 public_df = public_df[public_cols]
 
 
@@ -51,16 +127,18 @@ dates_df.loc[dates_df.uid=='qj2z-ibhs','Source'] = '3. Open Plan Tracker'
 dates_df = dates_df.append(today_df)
 dates_df.reset_index(inplace=True, drop=True)
 dates_df = dates_df[['Source', 'last_data_updated_date']]
-dates_df.rename(columns={'last_data_updated_date':'updated_on'},inplace=True)
+dates_df.rename(columns={'last_data_updated_date':'Updated on'},inplace=True)
 
 
 #### Step 3. Filter out assets
 
+##### DELETE THESE LINES AFTER THESE COLUMNS ARE IN PUBLIC #####
 # load Asset Inventory (Private Access)
 # https://data.cityofnewyork.us/dataset/Asset-Inventory/kvci-ugf9
-private_df = credentials.call_socrata_api('kvci-ugf9')
+private_df = call_socrata_api('kvci-ugf9')
 private_df = private_df[['uid','derived_view','parent_uid']]
 public_df = public_df.merge(private_df,on='uid',how='left')
+##### DELETE LINES ABOVE #####
 
 # Create merged_filter, the dataframe that has only assets defined as datasets
 # ZF approved the list
@@ -234,7 +312,7 @@ freshness_agency_df['fresh_pct'] = freshness_agency_df['fresh_count'].fillna(0) 
 
 # NYC Open Data Release Tracker
 # https://data.cityofnewyork.us/City-Government/NYC-Open-Data-Release-Tracker/qj2z-ibhs
-tracker_df = credentials.call_socrata_api('qj2z-ibhs')
+tracker_df = call_socrata_api('qj2z-ibhs')
 
 # exclude Removed from the plan and Removed from the portal, 
 release_status_filter = [
@@ -362,11 +440,11 @@ citywide = pd.DataFrame([['Citywide',
                          cw_compliance,
                          cw_overdue]],
                        columns=['Scope',
-                                'Number of published rows',
-                                'Number of published datasets',
+                                'Number of rows',
+                                'Number of datasets',
                                 'Percent of datasets updated on time',
-                                'Percent of datasets released on time in the last 12 months',
-                                'Number of overdue datasets'])
+                                'Percent of planned releases released on time within last 12 months',
+                                'Number of overdue for release datasets'])
 
 #### Step 2. Build complete agency-level dataset
 
@@ -388,19 +466,23 @@ all_agency_df['fresh_pct'] = all_agency_df['fresh_pct'].fillna('No automated dat
 all_agency_df['pct_ontime'] = all_agency_df['pct_ontime'].fillna('No datasets in the tracker')
 
 # maintain columns names to load data seamlessly to GDS
-all_agency_df.rename(columns={'datasetinformation_agency':'agency'},inplace=True)
 all_agency_df = all_agency_df[[
-                'agency',
+                'datasetinformation_agency',
                 'numdatasets',
                 'numrows',
-                'total_auto_count',
-                'fresh_count',
                 'fresh_pct',
-                'tracker_dataset_count',
-                'tracker_count_ontime',
-                'overdue_datasets',
-                'pct_ontime'    
+                'pct_ontime',
+                'overdue_datasets'    
 ]]
+
+all_agency_df.rename(columns={
+                'datasetinformation_agency':'Agency',
+                'numdatasets':'Number of datasets',
+                'numrows':'Number of rows',
+                'fresh_pct':'Percent of datasets updated on time',
+                'pct_ontime':'Percent of planned releases released on time within last 12 months',
+                'overdue_datasets':'Number of overdue for release datasets'
+}, inplace=True)
 
 #### Step 3. Build complete dataset-level dataset
 
@@ -423,6 +505,7 @@ all_datasets_df = quantity_dataset_df.merge(freshness_dataset_df[['uid',
 
 # append non-released datasets data
 # doing it as a separate step to keep more accurate data for released datasets
+
 all_datasets_df = all_datasets_df.append(tracker_12mo_dataset_df[~tracker_12mo_dataset_df['uid'].isin(all_datasets_df['uid'])])\
                                  .reset_index(drop=True)
 
@@ -446,51 +529,58 @@ all_datasets_df['fresh'] = all_datasets_df['fresh'].fillna('No regular updates')
 all_datasets_df['within_grace_period'] = all_datasets_df['within_grace_period'].fillna('Not in Open Plan Tracker')
 
 # maintain columns names to load data seamlessly to GDS
-all_datasets_df.rename(columns={
- 'datasetinformation_agency':'agency',
- 'uid':'u_id',
- 'url':'dataset_link',
- 'update_datemadepublic':'date_made_public_dt',
- 'row_count':'numrows',
- 'last_data_updated_date':'last_update_date_data_dt',
- 'latest_plan_date':'latest_plan_date_dt',
- 'release_date_fix':'release_date_dt_fix'
-},inplace=True)
 
 all_datasets_df= all_datasets_df[[
-    'agency',
-    'u_id',
+    'datasetinformation_agency',
     'name',
-    'dataset_description',
-    'dataset_link',
+    'url',
     'type',
-    'date_made_public_dt',
-    'numrows',
+    'update_datemadepublic',
+    'last_data_updated_date',
     'automation',
     'update_frequency',
-    'last_update_date_data_dt',
     'fresh',
-    'latest_plan_date_dt',
+    'latest_plan_date',
+    'release_date_fix',
+    'within_grace_period',
+    'row_count',
     'release_status',
-    'release_date_dt_fix',
-    'within_grace_period'
-]]
+    'dataset_description'
+    ]]
+
+all_datasets_df.rename(columns={
+    'datasetinformation_agency':'Agency',
+    'name':'Dataset name',
+    'url':'URL',
+    'type':'Asset type',
+    'update_datemadepublic':'Date made public',
+    'last_data_updated_date':'Last updated on',
+    'automation':'Automation',
+    'update_frequency':'Update frequency',
+    'fresh':'Updated on time',
+    'latest_plan_date':'Latest Open Data Plan release date',
+    'release_date_fix':'Open Data Plan release date',
+    'within_grace_period':'Planned releases released on  time within last 12mo?',
+    'row_count':'Number of rows',
+    'release_status':'Open Data Plan release status',
+    'dataset_description':'Description'
+},inplace=True)
 
 #### Step 4. Upload data to Google Spreadsheets
 
-credentials.gs_upload(df=citywide, 
+gs_upload(df=citywide, 
                     wks_name='_citywide_')
 print('Upload complete for citywide dataset')
 
-credentials.gs_upload(df=all_agency_df, 
+gs_upload(df=all_agency_df, 
                     wks_name='_agency_')
 print('Upload complete for agency dataset')
 
-credentials.gs_upload(df=all_datasets_df, 
+gs_upload(df=all_datasets_df, 
                     wks_name='_datasets_')
 print('Upload complete for datasets dataset')
 
-credentials.gs_upload(df=dates_df, 
+gs_upload(df=dates_df, 
                     wks_name='_dates_')
 print('Upload complete for dates dataset')
 
