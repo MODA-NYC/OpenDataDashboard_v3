@@ -19,11 +19,6 @@ from df2gspread import df2gspread as d2g
 #### Socrata
 socrata_url = "https://data.cityofnewyork.us/resource/"
 
-##### DELETE AUTHENTICATION AFTER NO NEED FOR PRIVATE #####
-from requests.auth import HTTPBasicAuth
-socrata_key = 'dpovnwa4lwoaka48233qr8b2f'
-socrata_secret = '4taqkebdfxsaaf7sqo0qgze23enewwn50ro9jyjk9ury6qcen1'
-
 #### Google Sheets
 
 #############################################################################################
@@ -57,9 +52,7 @@ def call_socrata_api(uid, limit=100000):
 
     num_records = f"$limit={limit}"
 
-    # r = requests.get(socrata_url + uid + '.json?' + num_records)
-    r = requests.get(socrata_url + uid + '.json?' + num_records, 
-                    auth=HTTPBasicAuth(socrata_key, socrata_secret))
+    r = requests.get(socrata_url + uid + '.json?' + num_records)
     if r.status_code != 200:
         raise Exception('Error getting data')
     asset_df = pd.read_json(StringIO(json.dumps(r.json())))
@@ -104,12 +97,10 @@ public_cols = [
     'update_updatefrequency',
     'last_data_updated_date',
     'type',
-    'row_count'
+    'row_count',
+    'derived_view',
+    'parent_uid'
 ]
-
-#### ADD THESE TO public_cols #####
-    # 'derived_view',
-    # 'parent_uid'
 
 public_df = public_df[public_cols]
 
@@ -135,14 +126,6 @@ dates_df.rename(columns={'last_data_updated_date':'Updated on'},inplace=True)
 
 
 #### Step 3. Filter out assets
-
-##### DELETE THESE LINES AFTER THESE COLUMNS ARE IN PUBLIC #####
-# load Asset Inventory (Private Access)
-# https://data.cityofnewyork.us/dataset/Asset-Inventory/kvci-ugf9
-private_df = call_socrata_api('kvci-ugf9')
-private_df = private_df[['uid','derived_view','parent_uid']]
-public_df = public_df.merge(private_df,on='uid',how='left')
-##### DELETE LINES ABOVE #####
 
 # Create merged_filter, the dataframe that has only assets defined as datasets
 # ZF approved the list
