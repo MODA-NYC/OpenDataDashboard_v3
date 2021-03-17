@@ -13,6 +13,7 @@ import json
 from io import StringIO
 from df2gspread import df2gspread as d2g
 
+
 #### Socrata and Google Sheets credentials are associated with modanycga@gmail.com
 
 #### Socrata
@@ -25,18 +26,22 @@ socrata_secret = '4taqkebdfxsaaf7sqo0qgze23enewwn50ro9jyjk9ury6qcen1'
 
 #### Google Sheets
 
-## Google Spreadsheet key from the URL
-## DEV:
-gs_key = '1uTuneWixsOlm5Cq8uVUzedJCM3jqNWxZ_HOkM5zAljU'
-## PROD:
-# gs_key = '1PyZUeeo_lY3Ox6e_577aiPly_Bu0y9Vpc1_NWwe3pK4'
-
 #############################################################################################
 ## References: 
 ## Google Spreadsheet Authentication:
 ## https://df2gspread.readthedocs.io/en/latest/overview.html
 ## Follow instructions in the "Access Credentials" section
 #############################################################################################
+
+## Google Spreadsheet key from the URL
+## DEV:
+gs_key = '1uTuneWixsOlm5Cq8uVUzedJCM3jqNWxZ_HOkM5zAljU'
+## PROD:
+# gs_key = '1PyZUeeo_lY3Ox6e_577aiPly_Bu0y9Vpc1_NWwe3pK4'
+
+from oauth2client.service_account import ServiceAccountCredentials
+scope = ['https://spreadsheets.google.com/feeds']
+gs_creds = ServiceAccountCredentials.from_json_keyfile_name('../Archive/Jupyter_and_Google_Sheets-12b039cdb296.json', scope)
 
 ##### LOADING HELPER FUNCTIONS #####
 
@@ -61,7 +66,7 @@ def call_socrata_api(uid, limit=100000):
 
     return asset_df
 
-def gs_upload(df, wks_name):
+def gs_upload(df, wks_name, creds=gs_creds):
     """
     Uploads df to Google Spreadsheets
     
@@ -70,11 +75,13 @@ def gs_upload(df, wks_name):
         df: pandas dataframe to upload
         wks_name: str, worksheet name
     """
-
-    d2g.upload(df=df,
-               gfile=gs_key, 
-               wks_name=wks_name, 
-               row_names=False)
+    d2g.upload(
+        df=df,
+        gfile=gs_key, 
+        wks_name=wks_name, 
+        row_names=False,
+        credentials=creds
+    )
 
 
 ########## DASHBOARD ##########
