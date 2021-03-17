@@ -10,6 +10,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-18.04
+    env:
+      GS_CREDENTIALS: ${​​{​​ secrets.GS_CREDENTIALS }​​}​​
+
     steps:
       - uses: actions/checkout@v2
 
