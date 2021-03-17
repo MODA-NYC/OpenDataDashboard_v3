@@ -13,9 +13,9 @@ from df2gspread import df2gspread as d2g
 socrata_url = "https://data.cityofnewyork.us/resource/"
 
 ##### DELETE AUTHENTICATION #####
-from requests.auth import HTTPBasicAuth
-socrata_key = 'dpovnwa4lwoaka48233qr8b2f'
-socrata_secret = '4taqkebdfxsaaf7sqo0qgze23enewwn50ro9jyjk9ury6qcen1'
+#from requests.auth import HTTPBasicAuth
+#socrata_key = 'dpovnwa4lwoaka48233qr8b2f'
+#socrata_secret = '4taqkebdfxsaaf7sqo0qgze23enewwn50ro9jyjk9ury6qcen1'
 
 #### Google Sheets
 
@@ -45,9 +45,9 @@ def call_socrata_api(uid, limit=100000):
 
     num_records = f"$limit={limit}"
 
-    # r = requests.get(socrata_url + uid + '.json?' + num_records)
-    r = requests.get(socrata_url + uid + '.json?' + num_records, 
-                    auth=HTTPBasicAuth(socrata_key, socrata_secret))
+    r = requests.get(socrata_url + uid + '.json?' + num_records)
+#    r = requests.get(socrata_url + uid + '.json?' + num_records, 
+#                    auth=HTTPBasicAuth(socrata_key, socrata_secret))
     if r.status_code != 200:
         raise Exception('Error getting data')
     asset_df = pd.read_json(StringIO(json.dumps(r.json())))

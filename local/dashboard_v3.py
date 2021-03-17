@@ -29,7 +29,9 @@ public_cols = [
     'update_updatefrequency',
     'last_data_updated_date',
     'type',
-    'row_count'
+    'row_count',
+    'derived_view',
+    'parent_uid'
 ]
 
 #### ADD THESE TO public_cols #####
@@ -64,9 +66,9 @@ dates_df.rename(columns={'last_data_updated_date':'Updated on'},inplace=True)
 ##### DELETE THESE LINES AFTER THESE COLUMNS ARE IN PUBLIC #####
 # load Asset Inventory (Private Access)
 # https://data.cityofnewyork.us/dataset/Asset-Inventory/kvci-ugf9
-private_df = credentials.call_socrata_api('kvci-ugf9')
-private_df = private_df[['uid','derived_view','parent_uid']]
-public_df = public_df.merge(private_df,on='uid',how='left')
+# private_df = credentials.call_socrata_api('kvci-ugf9')
+# private_df = private_df[['uid','derived_view','parent_uid']]
+# public_df = public_df.merge(private_df,on='uid',how='left')
 ##### DELETE LINES ABOVE #####
 
 # Create merged_filter, the dataframe that has only assets defined as datasets
