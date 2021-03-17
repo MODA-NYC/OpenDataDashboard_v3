@@ -2,8 +2,6 @@ name: ODD
  
 on:
   push:
-    branches:
-      - test-actions
   schedule:
     - cron: '45 21 * * *'
   workflow_dispatch:
@@ -12,8 +10,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-18.04
-    env:
-      GS_CREDENTIALS: ${​​{​​ secrets.GS_CREDENTIALS }​​}​​
     steps:
       - uses: actions/checkout@v2
 
@@ -26,10 +22,6 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt  
-      
-      - name: Install Credentials
-        run: |
-          echo "$GS_CREDENTIALS" > ~/.gdrive_private
       
       - name: Run script
         run: python dashboard_v3_gh.py
