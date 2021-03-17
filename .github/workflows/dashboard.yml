@@ -1,6 +1,9 @@
 name: ODD
  
 on:
+  push:
+    branches:
+      - test-actions
   schedule:
     - cron: '45 21 * * *'
   workflow_dispatch:
