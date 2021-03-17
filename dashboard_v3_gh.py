@@ -36,7 +36,7 @@ gs_key = '1uTuneWixsOlm5Cq8uVUzedJCM3jqNWxZ_HOkM5zAljU'
 
 from oauth2client.service_account import ServiceAccountCredentials
 scope = ['https://spreadsheets.google.com/feeds']
-gs_creds = ServiceAccountCredentials.from_json_keyfile_name('../Archive/Jupyter_and_Google_Sheets-12b039cdb296.json', scope)
+gs_creds = ServiceAccountCredentials.from_json_keyfile_name('Jupyter_and_Google_Sheets-12b039cdb296.json', scope)
 
 ##### LOADING HELPER FUNCTIONS #####
 
