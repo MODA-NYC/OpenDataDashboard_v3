@@ -10,8 +10,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-18.04
-    env:
-      GS_CREDENTIALS: ${​​{​​ secrets.GS_CREDENTIALS }​​}​​
 
     steps:
       - uses: actions/checkout@v2
@@ -26,9 +24,5 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt  
       
-      - name: Install Credentials
-        run: |
-          echo "$GS_CREDENTIALS" > ./service_account_key.json
-
       - name: Run script
         run: python dashboard_v3_gh.py
