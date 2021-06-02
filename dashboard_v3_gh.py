@@ -196,9 +196,14 @@ freshness_df = public_filtered_df[[
     'last_data_updated_date',
     'update_automation']]
 
+# list of included frequency updates
+update_freq = ['Daily', 'Annually', 'Biannually ',
+       'Quarterly', 'Monthly', 'Weekly', '2 to 4 times per year',
+       'Weekdays', 'Every four years', 'Biweekly ', 'Triannually',
+       'Several times per day', 'Hourly']
+
 # Remove datasets with update frequencies for which we cannot determine freshness
-freshness_df = freshness_df[(~freshness_df['update_updatefrequency']\
-                            .isin(['Historical Data', 'As needed'])) &\
+freshness_df = freshness_df[(freshness_df['update_updatefrequency'].isin(update_freq)) &\
                              ~freshness_df['update_updatefrequency'].isna()]\
                             .reset_index(drop=True)
 
@@ -206,6 +211,7 @@ def assign_dataframe_statuses(data):
 
     """
     Determines if the data has been updated on time
+    The list of update frequency need to be updated manually with new values
     """
     
     df = data.copy()
@@ -512,8 +518,15 @@ all_datasets_df['update_frequency'] = np.where(all_datasets_df['update_updatefre
 # recode missing dates into string NA to properly read format in GDS
 all_datasets_df['release_date_fix'] = pd.to_datetime(all_datasets_df['release_date'], errors='coerce')
 
-all_datasets_df['fresh'] = all_datasets_df['fresh'].fillna('No regular updates')
+# update freshness for datastes that are not regularly updated or are not released yet
+all_datasets_df.loc[all_datasets_df['update_frequency'].isin(['Historical Data','As needed']),'fresh'] = 'No regular updates'
+all_datasets_df.loc[all_datasets_df['release_status']=='Scheduled for release','fresh'] = 'Not applicable'
+# freshness for new values of update frequency cannot be determined 
+# (need to manually add them to update_freq list and assign_dataframe_statuses function)
+all_datasets_df['fresh'] = all_datasets_df['fresh'].fillna('Not determined')
+
 all_datasets_df['within_grace_period'] = all_datasets_df['within_grace_period'].fillna('Not in Open Plan Tracker')
+all_datasets_df.shape
 
 # maintain columns names to load data seamlessly to GDS
 
