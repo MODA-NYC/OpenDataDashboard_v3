@@ -30,9 +30,9 @@ socrata_url = "https://data.cityofnewyork.us/resource/"
 
 ## Google Spreadsheet key from the URL
 ## DEV:
-# gs_key = '1uTuneWixsOlm5Cq8uVUzedJCM3jqNWxZ_HOkM5zAljU'
+gs_key = '1uTuneWixsOlm5Cq8uVUzedJCM3jqNWxZ_HOkM5zAljU'
 ## PROD:
-gs_key = '1PyZUeeo_lY3Ox6e_577aiPly_Bu0y9Vpc1_NWwe3pK4'
+# gs_key = '1PyZUeeo_lY3Ox6e_577aiPly_Bu0y9Vpc1_NWwe3pK4'
 
 from oauth2client.service_account import ServiceAccountCredentials
 scope = ['https://spreadsheets.google.com/feeds']
@@ -578,6 +578,10 @@ print('Upload complete for agency dataset')
 
 gs_upload(df=all_datasets_df, 
                     wks_name='_datasets_')
+print('Upload complete for datasets dataset')
+
+gs_upload(df=all_datasets_df[all_datasets_df['Open Data Plan release status']=='Scheduled for release'], 
+                    wks_name='_datasets_not_released_')
 print('Upload complete for datasets dataset')
 
 gs_upload(df=dates_df, 
