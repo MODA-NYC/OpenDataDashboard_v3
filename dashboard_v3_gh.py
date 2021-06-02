@@ -566,6 +566,10 @@ all_datasets_df.rename(columns={
     'dataset_description':'Description'
 },inplace=True)
 
+not_released_datasets_df = all_datasets_df[all_datasets_df['Open Data Plan release status']=='Scheduled for release']
+not_released_datasets_df = not_released_datasets_df[['Agency','Dataset name','Description','Latest Open Data Plan release date']]
+
+
 #### Step 4. Upload data to Google Spreadsheets
 
 gs_upload(df=citywide, 
@@ -580,9 +584,9 @@ gs_upload(df=all_datasets_df,
                     wks_name='_datasets_')
 print('Upload complete for datasets dataset')
 
-gs_upload(df=all_datasets_df[all_datasets_df['Open Data Plan release status']=='Scheduled for release'], 
+gs_upload(df=not_released_datasets_df, 
                     wks_name='_datasets_not_released_')
-print('Upload complete for datasets dataset')
+print('Upload complete for not released datasets dataset')
 
 gs_upload(df=dates_df, 
                     wks_name='_dates_')
