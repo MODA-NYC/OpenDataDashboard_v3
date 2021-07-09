@@ -12,6 +12,8 @@ concurrency: staging_environment
 jobs:
   build:
     runs-on: ubuntu-18.04
+    env:
+      GS_CREDENTIALS : ${{secrets.GS_CREDENTIALS}}
 
     steps:
       - uses: actions/checkout@v2
@@ -29,13 +31,13 @@ jobs:
       - name: Run prod script
         run: python dashboard_v3_gh.py
 
-      - name: print secrets
-        run: |
-          echo $GS_CREDENTIALS >> ~/.config/gspread/service_account.json
-          cat ~/.config/gspread/service_account.json
-        shell: bash
-        env:
-          GS_CREDENTIALS : ${{secrets.GS_CREDENTIALS}}
+      # - name: print secrets
+      #   run: |
+      #     echo $GS_CREDENTIALS >> ~/.config/gspread/service_account.json
+      #     cat ~/.config/gspread/service_account.json
+      #   shell: bash
+      #   env:
+      #     GS_CREDENTIALS : ${{secrets.GS_CREDENTIALS}}
       
       - name: Run dev script
         run: python dashboard_dev.py
