@@ -10,6 +10,8 @@ import pandas as pd
 import numpy as np
 from datetime import date, datetime
 
+import time
+
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -589,6 +591,9 @@ not_released_datasets_df = all_datasets_df[all_datasets_df['Open Data Plan relea
 not_released_datasets_df = not_released_datasets_df[['Agency','Dataset name','Description','Latest Open Data Plan release date']]
 
 #### Step 4. Upload data to Google Spreadsheets
+
+# required to avoid exceeding read requests quota
+time.spleep(60)
 
 gs_upload(df=citywide_df, 
           wks_name='_citywide_')
