@@ -7,7 +7,8 @@ import gspread
 
 import pandas as pd
 import numpy as np
-from datetime import date, datetime
+# from datetime import date, datetime
+from datetime import date
 
 import warnings
 warnings.filterwarnings('ignore')
@@ -115,8 +116,13 @@ dates_df.rename(columns={'last_data_updated_date':'Updated on'},inplace=True)
 
 # Create merged_filter, the dataframe that has only assets defined as datasets
 # ZF approved the list
+
+print("Available asset types in the public AI:")
+print(public_df['type'].value_counts(dropna=False)).sort_index()
+print()
+
 dataset_filter_list = ['dataset','filter','map']
-public_filtered_df = public_df[public_df.type.isin(dataset_filter_list)]
+public_filtered_df = public_df[public_df['type'].isin(dataset_filter_list)]
 
 ## remove derived assets if parent asset is public
 # get parent ids for derived assets
@@ -172,6 +178,23 @@ quantity_agency_df = quantity_dataset_df.groupby(['datasetinformation_agency'])\
 
 #### Step 1. Build baseline dataset
 
+print("List of available update frequencies:")
+public_filtered_df['update_updatefrequency'].value_counts(dropna=False).sort_index()
+print()
+
+update_values_avail = set(public_filtered_df['update_updatefrequency'].unique())
+
+# list of included frequency updates
+update_values_used = ['Daily', 'Annually', 'Biannually ',
+       'Quarterly', 'Monthly', 'Weekly', '2 to 4 times per year',
+       'Weekdays', 'Every four years', 'Biweekly ', 'Triannually',
+       'Several times per day', 'Hourly']
+
+# identify new update frequency values
+print("Not used update frequencies:")
+print(update_values_avail.difference(update_values_used))
+print()
+
 freshness_df = public_filtered_df[[
     'datasetinformation_agency',
     'name',
@@ -182,14 +205,8 @@ freshness_df = public_filtered_df[[
     'last_data_updated_date',
     'update_automation']]
 
-# list of included frequency updates
-update_freq = ['Daily', 'Annually', 'Biannually ',
-       'Quarterly', 'Monthly', 'Weekly', '2 to 4 times per year',
-       'Weekdays', 'Every four years', 'Biweekly ', 'Triannually',
-       'Several times per day', 'Hourly']
-
 # Remove datasets with update frequencies for which we cannot determine freshness
-freshness_df = freshness_df[(freshness_df['update_updatefrequency'].isin(update_freq)) &\
+freshness_df = freshness_df[(freshness_df['update_updatefrequency'].isin(update_values_used)) &\
                              ~freshness_df['update_updatefrequency'].isna()]\
                             .reset_index(drop=True)
 
@@ -292,6 +309,10 @@ freshness_agency_df['fresh_pct'] = freshness_agency_df['fresh_count'].fillna(0) 
 # NYC Open Data Release Tracker
 # https://data.cityofnewyork.us/City-Government/NYC-Open-Data-Release-Tracker/qj2z-ibhs
 tracker_df = call_socrata_api('qj2z-ibhs')
+
+print("Release status values:")
+tracker_df['release_status'].value_counts(dropna=False).sort_index()
+print()
 
 # exclude Removed from the plan and Removed from the portal, 
 release_status_filter = [
@@ -434,6 +455,7 @@ all_agency_df = quantity_agency_df.merge(freshness_agency_df,
                                         on='datasetinformation_agency',
                                         how='outer')
 
+# fill missing values
 all_agency_df['overdue_datasets'] = all_agency_df['overdue_datasets'].fillna(0)
 all_agency_df['numdatasets'] = all_agency_df['numdatasets'].fillna(0)
 all_agency_df['numrows'] = all_agency_df['row_count'].fillna(0)
@@ -577,4 +599,5 @@ gs_upload(wks_name='_dates_',
           df=dates_df)
 print('Upload complete for dates dataset')
 
-print(f"Dashboard was updated at: {datetime.now()}")
+print(f"Dashboard was updated on: {date.today()}")
+# print(f"Dashboard was updated at: {datetime.now()}")
