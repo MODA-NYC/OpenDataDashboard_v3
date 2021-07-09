@@ -4,4 +4,4 @@ numpy==1.19.4
 requests==2.25.1
 google-oauth2-tool==0.0.3
 df2gspread==1.0.4
-gspread==3.7.0
+# gspread==3.7.0

@@ -3,12 +3,12 @@ import json
 from io import StringIO
 
 import os
-import gspread
+from df2gspread import df2gspread as d2g
+from oauth2client.service_account import ServiceAccountCredentials
 
 import pandas as pd
 import numpy as np
-# from datetime import date, datetime
-from datetime import date
+from datetime import date, datetime
 
 import warnings
 warnings.filterwarnings('ignore')
@@ -50,19 +50,32 @@ creds_location = os.path.join(home_path,'service_account.json')
 with open(creds_location, 'w') as f:
     f.write(google_credential)
 
+scope = ['https://spreadsheets.google.com/feeds']
+gs_creds = ServiceAccountCredentials.from_json_keyfile_name(creds_location, scope)
+
 ## Google Spreadsheet key from the URL
 ## DEV:
 gs_name = "ODD_DEV_Source_File"
 ## PROD:
 # gs_name = "ODD_V3_Source_File"
 
-gc = gspread.service_account(filename=creds_location)
-sh = gc.open(gs_name)
+def gs_upload(df, wks_name):
+    """
+    Uploads df to Google Spreadsheets
+    
+    Args:
+        gs_key: str, spreadhsheet key
+        df: pandas dataframe to upload
+        wks_name: str, worksheet name
+    """
+    d2g.upload(
+        df=df,
+        gfile=gs_name, 
+        wks_name=wks_name, 
+        row_names=False,
+        credentials=gs_creds
+    )
 
-def gs_upload(wks_name, df):
-    worksheet = sh.worksheet(wks_name)
-    worksheet.update([df.columns.values.tolist()] +\
-               df.values.tolist())
 
 ########## DASHBOARD ##########
 
@@ -579,25 +592,24 @@ not_released_datasets_df = not_released_datasets_df[['Agency','Dataset name','De
 
 #### Step 4. Upload data to Google Spreadsheets
 
-gs_upload(wks_name='_citywide_',
-          df=citywide_df)
+gs_upload(df=citywide_df, 
+          wks_name='_citywide_')
 print('Upload complete for citywide dataset')
 
-gs_upload(wks_name='_agency_',
-          df=all_agency_df)
+gs_upload(df=all_agency_df, 
+          wks_name='_agency_')
 print('Upload complete for agency dataset')
 
-gs_upload(wks_name='_datasets_',
-          df=all_datasets_df)
+gs_upload(df=all_datasets_df, 
+          wks_name='_datasets_')
 print('Upload complete for datasets dataset')
 
-gs_upload(wks_name='_datasets_not_released_',
-          df=not_released_datasets_df)
+gs_upload(df=not_released_datasets_df, 
+          wks_name='_datasets_not_released_')
 print('Upload complete for not released datasets dataset')
 
-gs_upload(wks_name='_dates_',
-          df=dates_df)
+gs_upload(df=dates_df, 
+          wks_name='_dates_')
 print('Upload complete for dates dataset')
 
-print(f"Dashboard was updated on: {date.today()}")
-# print(f"Dashboard was updated at: {datetime.now()}")
+print(f"Dashboard was updated at: {datetime.now()}")
