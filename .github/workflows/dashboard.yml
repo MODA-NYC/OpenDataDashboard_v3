@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-18.04
     env:
       GS_CREDENTIALS : ${{secrets.GS_CREDENTIALS}}
-      GS_ODD_DEV_KEY : ${{secrets.GS_ODD_PROD_KEY}}
+      GS_ODD_PROD_KEY : ${{secrets.GS_ODD_PROD_KEY}}
       GS_ODD_DEV_KEY : ${{secrets.GS_ODD_DEV_KEY}}
 
     steps:
