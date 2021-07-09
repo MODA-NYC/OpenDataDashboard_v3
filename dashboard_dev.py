@@ -7,10 +7,12 @@ home_path = os.getenv('HOME')
 print("gs creds: ", google_credential)
 print("home path: ", home_path)
 
-with open(os.path.join(home_path,'/.config/gspread/service_account.json'), 'w') as f:
+creds_location = os.path.join(home_path,'service_account.json')
+
+with open(creds_location, 'w') as f:
     f.write(google_credential)
 
-gc = gspread.service_account()
+gc = gspread.service_account(filename=creds_location)
 sh = gc.open("ODD_DEV_Source_File")
 
 worksheet = sh.worksheet("_citywide_")
