@@ -118,7 +118,7 @@ dates_df.rename(columns={'last_data_updated_date':'Updated on'},inplace=True)
 # ZF approved the list
 
 print("Available asset types in the public AI:")
-print(public_df['type'].value_counts(dropna=False)).sort_index()
+print(public_df['type'].value_counts(dropna=False).sort_index())
 print()
 
 dataset_filter_list = ['dataset','filter','map']
@@ -179,7 +179,7 @@ quantity_agency_df = quantity_dataset_df.groupby(['datasetinformation_agency'])\
 #### Step 1. Build baseline dataset
 
 print("List of available update frequencies:")
-public_filtered_df['update_updatefrequency'].value_counts(dropna=False).sort_index()
+print(public_filtered_df['update_updatefrequency'].value_counts(dropna=False).sort_index())
 print()
 
 update_values_avail = set(public_filtered_df['update_updatefrequency'].unique())
@@ -311,7 +311,7 @@ freshness_agency_df['fresh_pct'] = freshness_agency_df['fresh_count'].fillna(0) 
 tracker_df = call_socrata_api('qj2z-ibhs')
 
 print("Release status values:")
-tracker_df['release_status'].value_counts(dropna=False).sort_index()
+print(tracker_df['release_status'].value_counts(dropna=False).sort_index())
 print()
 
 # exclude Removed from the plan and Removed from the portal, 
