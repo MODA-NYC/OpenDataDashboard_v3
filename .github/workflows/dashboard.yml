@@ -14,6 +14,7 @@ jobs:
     runs-on: ubuntu-18.04
     env:
       GS_CREDENTIALS : ${{secrets.GS_CREDENTIALS}}
+      GS_ODD_DEV_KEY : ${{secrets.GS_ODD_PROD_KEY}}
       GS_ODD_DEV_KEY : ${{secrets.GS_ODD_DEV_KEY}}
 
     steps:
@@ -30,7 +31,7 @@ jobs:
           pip install -r requirements.txt  
       
       - name: Run prod script
-        run: python dashboard_v3_gh.py
+        run: python dashboard_prod.py
 
       - name: Run dev script
         run: python dashboard_dev.py

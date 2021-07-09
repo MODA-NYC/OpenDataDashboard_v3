@@ -56,10 +56,10 @@ scope = ['https://spreadsheets.google.com/feeds']
 gs_creds = ServiceAccountCredentials.from_json_keyfile_name(creds_location, scope)
 
 ## Google Spreadsheet key from the URL
-## DEV:
-gs_key = os.getenv('GS_ODD_DEV_KEY')
+gs_key_prod = os.getenv('GS_ODD_PROD_KEY')
+gs_key_dev = os.getenv('GS_ODD_DEV_KEY')
 
-def gs_upload(df, wks_name):
+def gs_upload(df, wks_name, prod=True):
     """
     Uploads df to Google Spreadsheets
     
@@ -68,6 +68,13 @@ def gs_upload(df, wks_name):
         df: pandas dataframe to upload
         wks_name: str, worksheet name
     """
+    if prod:
+        print("Writing to production dashboard")
+        gs_key = gs_key_prod
+    else:
+        print("Writing to dev dashboard")
+        gs_key = gs_key_dev
+
     d2g.upload(
         df=df,
         gfile=gs_key, 

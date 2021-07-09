@@ -528,28 +528,23 @@ not_released_datasets_df = not_released_datasets_df[['Agency','Dataset name','De
 time.sleep(60)
 
 creds.gs_upload(df=citywide_df, 
-          wks_name='_citywide_',
-          prod=False)
+          wks_name='_citywide_')
 print('Upload complete for citywide dataset')
 
 creds.gs_upload(df=all_agency_df, 
-          wks_name='_agency_',
-          prod=False)
+          wks_name='_agency_')
 print('Upload complete for agency dataset')
 
 creds.gs_upload(df=all_datasets_df, 
-          wks_name='_datasets_',
-          prod=False)
+          wks_name='_datasets_')
 print('Upload complete for datasets dataset')
 
 creds.gs_upload(df=not_released_datasets_df, 
-          wks_name='_datasets_not_released_',
-          prod=False)
+          wks_name='_datasets_not_released_')
 print('Upload complete for not released datasets dataset')
 
 creds.gs_upload(df=dates_df, 
-          wks_name='_dates_',
-          prod=False)
+          wks_name='_dates_')
 print('Upload complete for dates dataset')
 
 print(f"Dashboard was updated at: {datetime.now()}")
