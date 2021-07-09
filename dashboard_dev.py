@@ -7,7 +7,7 @@ import gspread
 
 import pandas as pd
 import numpy as np
-from datetime import date
+from datetime import date, datetime
 
 import warnings
 warnings.filterwarnings('ignore')
@@ -57,6 +57,11 @@ gs_name = "ODD_DEV_Source_File"
 
 gc = gspread.service_account(filename=creds_location)
 sh = gc.open(gs_name)
+
+def gs_upload(wks_name, df):
+    worksheet = sh.worksheet(wks_name)
+    worksheet.update([df.columns.values.tolist()] +\
+               df.values.tolist())
 
 ########## DASHBOARD ##########
 
@@ -550,10 +555,26 @@ all_datasets_df.rename(columns={
 not_released_datasets_df = all_datasets_df[all_datasets_df['Open Data Plan release status']=='Scheduled for release']
 not_released_datasets_df = not_released_datasets_df[['Agency','Dataset name','Description','Latest Open Data Plan release date']]
 
-
 #### Step 4. Upload data to Google Spreadsheets
 
-citywide_ws = sh.worksheet("_citywide_")
-citywide_ws.update([citywide_df.columns.values.tolist()] + \
-                    citywide_df.values.tolist())
+gs_upload(wks_name='_citywide_',
+          df=citywide_df)
 print('Upload complete for citywide dataset')
+
+gs_upload(wks_name='_agency_',
+          df=all_agency_df)
+print('Upload complete for agency dataset')
+
+gs_upload(wks_name='_datasets_',
+          df=all_datasets_df)
+print('Upload complete for datasets dataset')
+
+gs_upload(wks_name='_datasets_not_released_',
+          df=not_released_datasets_df)
+print('Upload complete for not released datasets dataset')
+
+gs_upload(wks_name='_dates_',
+          df=dates_df)
+print('Upload complete for dates dataset')
+
+print(f"Dashboard was updated at: {datetime.now()}")
