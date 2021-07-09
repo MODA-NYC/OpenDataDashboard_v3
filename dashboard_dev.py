@@ -55,9 +55,7 @@ gs_creds = ServiceAccountCredentials.from_json_keyfile_name(creds_location, scop
 
 ## Google Spreadsheet key from the URL
 ## DEV:
-gs_name = "ODD_DEV_Source_File"
-## PROD:
-# gs_name = "ODD_V3_Source_File"
+gs_key = os.getenv('GS_ODD_DEV_KEY')
 
 def gs_upload(df, wks_name):
     """
@@ -70,7 +68,7 @@ def gs_upload(df, wks_name):
     """
     d2g.upload(
         df=df,
-        gfile=gs_name, 
+        gfile=gs_key, 
         wks_name=wks_name, 
         row_names=False,
         credentials=gs_creds
