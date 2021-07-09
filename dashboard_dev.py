@@ -556,3 +556,4 @@ not_released_datasets_df = not_released_datasets_df[['Agency','Dataset name','De
 citywide_ws = sh.worksheet("_citywide_")
 citywide_ws.update([citywide_df.columns.values.tolist()] + \
                     citywide_df.values.tolist())
+print('Upload complete for citywide dataset')
