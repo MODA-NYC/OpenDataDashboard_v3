@@ -525,7 +525,7 @@ not_released_datasets_df = not_released_datasets_df[['Agency','Dataset name','De
 #### Step 4. Upload data to Google Spreadsheets
 
 # required to avoid exceeding read requests quota
-time.spleep(60)
+time.sleep(60)
 
 creds.gs_upload(df=citywide_df, 
           wks_name='_citywide_')
