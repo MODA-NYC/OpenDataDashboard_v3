@@ -64,9 +64,11 @@ def gs_upload(df, wks_name, prod=True):
     Uploads df to Google Spreadsheets
     
     Args:
-        gs_key: str, spreadhsheet key
         df: pandas dataframe to upload
         wks_name: str, worksheet name
+    Kwargs:
+        prod: bool, if True, upload to production spreadsheet
+                    otherwise, upload to development spreadsheet
     """
     if prod:
         print("Writing to production dashboard")
