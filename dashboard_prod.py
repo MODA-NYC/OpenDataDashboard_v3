@@ -159,7 +159,7 @@ def assign_dataframe_statuses(data):
 
     """
     Determines if the data has been updated on time
-    The list of update frequency need to be updated manually with new values
+    The list of update frequency needs to be updated manually with new values
     """
     
     df = data.copy()
@@ -204,7 +204,7 @@ def assign_dataframe_statuses(data):
     # calculate when asset should have been last updated
     df['last_updated_ago'] = pd.to_datetime(date.today()) - df['last_data_updated_date']
     
-    # assign status to automated, dictionary and geocoded columns
+    # assign status "updated on time" to datasets updated on time
     df['fresh'] = np.where((df['last_updated_ago']>=df['update_threshold']),'No','Yes')
     
     df.drop(columns=['update_threshold'],inplace=True)
