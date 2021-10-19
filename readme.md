@@ -17,11 +17,6 @@ Files in this repository:
 > `.github/workflows/dashboard.yml` - GitHub Actions workflow file.
 
 
-### Introduction
-
-This is part 2 of the article about NYC Open Data Dashboard. Part 1 can be found [here](). Read below to learn about the techincal infrastrucre behind the dashboard.
-
-
 ### Technical Requirements
 
 #### Infrastructure 
