@@ -34,3 +34,13 @@ jobs:
 
       - name: Run dev script
         run: python dashboard_dev.py
+
+      - name: Report Status
+        if: always()
+        uses: ravsamhq/notify-slack-action@master
+        with:
+          status: ${{ job.status }}
+          mention_users: 'U01HAG8GGN9'
+          mention_users_when: 'failure,warnings'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.ACTION_MONITORING_SLACK }}
