@@ -130,7 +130,7 @@ print()
 update_values_avail = set(public_filtered_df['update_updatefrequency'].unique())
 
 # list of included frequency updates
-update_values_used = ['Daily', 'Every weekday', 'Weekly'. 'Every 2 weeks', 'Monthly', 'Every 2 months', 'Quarterly', 'Every 4 months', 'Every 6 months', 'Annually', 
+update_values_used = ['Daily', 'Every weekday', 'Weekly', 'Every 2 weeks', 'Monthly', 'Every 2 months', 'Quarterly', 'Every 4 months', 'Every 6 months', 'Annually', 
                       'Every 2 years', 'Every 3 years', 'Every 4 years', 'Every 5 years', 'Every 10 years', '2 to 4 times per year', 'Several times per day', 'Hourly']
 
 # identify new update frequency values
