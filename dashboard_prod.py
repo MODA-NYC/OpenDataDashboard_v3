@@ -482,7 +482,7 @@ all_datasets_df['update_frequency'] = np.where(all_datasets_df['update_updatefre
 all_datasets_df['release_date_fix'] = pd.to_datetime(all_datasets_df['release_date'], errors='coerce')
 
 # update freshness for datastes that are not regularly updated or are not released yet
-all_datasets_df.loc[all_datasets_df['update_frequency'].isin(['Historical Data','As needed']),'fresh'] = 'No regular updates'
+all_datasets_df.loc[all_datasets_df['update_frequency'].isin(['Historical data','As needed']),'fresh'] = 'No regular updates'
 all_datasets_df.loc[all_datasets_df['release_status']=='Scheduled for release','fresh'] = 'Not yet released'
 # freshness for new values of update frequency cannot be determined 
 # (need to manually add them to update_freq list and assign_dataframe_statuses function)
