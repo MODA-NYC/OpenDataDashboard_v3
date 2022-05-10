@@ -179,14 +179,14 @@ def assign_dataframe_statuses(data):
         (df['update_updatefrequency']=='Every 4 months'),
         (df['update_updatefrequency']=='Every 6 months'),
         (df['update_updatefrequency']=='Annually'),
-        (df['update_updatefrequency']=='Every 2 years')
-        (df['update_updatefrequency']=='Every 3 years')
-        (df['update_updatefrequency']=='Every 4 years')
-        (df['update_updatefrequency']=='Every 5 years')
-        (df['update_updatefrequency']=='Every 10 years')
+        (df['update_updatefrequency']=='Every 2 years'),
+        (df['update_updatefrequency']=='Every 3 years'),
+        (df['update_updatefrequency']=='Every 4 years'),
+        (df['update_updatefrequency']=='Every 5 years'),
+        (df['update_updatefrequency']=='Every 10 years'),
         (df['update_updatefrequency']=='2 to 4 times per year'),
         (df['update_updatefrequency']=='Several times per day'),
-        (df['update_updatefrequency']=='Hourly'),
+        (df['update_updatefrequency']=='Hourly')
     ]
     status_choices = [
         pd.Timedelta('25 hours'),
@@ -201,12 +201,12 @@ def assign_dataframe_statuses(data):
         pd.Timedelta('366 days'),
         pd.Timedelta('731 days'),
         pd.Timedelta('1096 days'),
-        pd.Timedelta('1461 days')
+        pd.Timedelta('1461 days'),
         pd.Timedelta('1827 days'),
         pd.Timedelta('3652 days'),
         pd.Timedelta('182 days'),
         pd.Timedelta('25 hours'),
-        pd.Timedelta('25 hours'),
+        pd.Timedelta('25 hours')
         ]
     
     df['update_threshold'] = np.select(status_conditions, status_choices, default=pd.Timedelta('50000 days'))
