@@ -131,7 +131,8 @@ update_values_avail = set(public_filtered_df['update_updatefrequency'].unique())
 
 # list of included frequency updates
 update_values_used = ['Daily', 'Every weekday', 'Weekly', 'Every 2 weeks', 'Monthly', 'Every 2 months', 'Quarterly', 'Every 4 months', 'Every 6 months', 'Annually', 
-                      'Every 2 years', 'Every 3 years', 'Every 4 years', 'Every 5 years', 'Every 10 years', '2 to 4 times per year', 'Several times per day', 'Hourly']
+                      'Every 2 years', 'Every 3 years', 'Every 4 years', 'Every 5 years', 'Every 10 years', '2 to 4 times per year', 'Several times per day', 'Hourly', 
+                      'Triannually', 'Biannually', 'Bimonthly']
 
 # identify new update frequency values
 print("Not used update frequencies:")
@@ -184,7 +185,10 @@ def assign_dataframe_statuses(data):
         (df['update_updatefrequency']=='Every 10 years'),
         (df['update_updatefrequency']=='2 to 4 times per year'),
         (df['update_updatefrequency']=='Several times per day'),
-        (df['update_updatefrequency']=='Hourly')
+        (df['update_updatefrequency']=='Hourly'),
+        (df['update_updatefrequency']=='Triannually'),
+        (df['update_updatefrequency']=='Biannually'),
+        (df['update_updatefrequency']=='Bimonthly')
     ]
     status_choices = [
         pd.Timedelta('25 hours'),
@@ -204,7 +208,10 @@ def assign_dataframe_statuses(data):
         pd.Timedelta('3652 days'),
         pd.Timedelta('182 days'),
         pd.Timedelta('25 hours'),
-        pd.Timedelta('25 hours')
+        pd.Timedelta('25 hours'),
+        pd.Timedelta('182 days'),
+        pd.Timedelta('366 days'),
+        pd.Timedelta('62 days')
         ]
     
     df['update_threshold'] = np.select(status_conditions, status_choices, default=pd.Timedelta('50000 days'))
