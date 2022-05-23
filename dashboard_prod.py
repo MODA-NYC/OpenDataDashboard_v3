@@ -187,8 +187,8 @@ def assign_dataframe_statuses(data):
         (df['update_updatefrequency']=='Several times per day'),
         (df['update_updatefrequency']=='Hourly'),
         (df['update_updatefrequency']=='Triannually'),
-        (df['update_updatefrequency']=='Biannually'),
-        (df['update_updatefrequency']=='Bimonthly')
+        (df['update_updatefrequency']=='Biannually '),
+        (df['update_updatefrequency']=='Bimonthly ')
     ]
     status_choices = [
         pd.Timedelta('25 hours'),
