@@ -10,7 +10,7 @@ concurrency: staging_environment
  
 jobs:
   build:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
     env:
       GS_CREDENTIALS : ${{secrets.GS_CREDENTIALS}}
       GS_ODD_PROD_KEY : ${{secrets.GS_ODD_PROD_KEY}}
