@@ -30,7 +30,7 @@ The infrastructure of the dashboard relies entirely on tools available to public
 
 _Implementation tip:_ To set up a simple workflow, similar to the Open Data Dashboard, user needs to create [a workflow file](https://docs.github.com/en/actions/learn-github-actions/introduction-to-github-actions#create-an-example-workflow) within their repository to initiate and run the process. [`.github/workflows/dashboard.yml`](https://github.com/MODA-NYC/OpenDataDashboard_v3/blob/master/.github/workflows/dashboard.yml) is the workflow file for the Open Data Dashboard.
 
-[Google Spreadsheets](https://docs.google.com/spreadsheets/u/0/) and [Google Data Studio](https://datastudio.google.com/u/0/) are free tools avaialble to all users with a Google account. 
+[Google Spreadsheets](https://docs.google.com/spreadsheets/u/0/) and [Google Data Studio](https://datastudio.google.com/u/0/) are free tools available to all users with a Google account. 
 
 _Implementation tip:_ To establish communication between the processes within a GitHub Actions workflow and Google applications, user needs to retreive their own Service Account credentials from Google API. You can use [these instructions](https://docs.gspread.org/en/latest/oauth2.html#for-bots-using-service-account) to retreive credentials associated with your Google account (we use `gspread` Python package to establish the connection in our pipeline). We store our credentials as [GitHub Secrets](https://docs.github.com/en/actions/reference/encrypted-secrets), which is a good practice for storing any sensitive information stored on GitHub. 
 
