@@ -52,7 +52,12 @@ creds_location = os.path.join(home_path,'service_account.json')
 with open(creds_location, 'w') as f:
     f.write(google_credential)
 
-scope = ['https://spreadsheets.google.com/feeds']
+
+## changing scope to see if that's the cause of the error
+#scope = ['https://spreadsheets.google.com/feeds']
+scope = ['https://www.googleapis.com/auth/spreadsheets']
+
+
 gs_creds = ServiceAccountCredentials.from_json_keyfile_name(creds_location, scope)
 
 ## Google Spreadsheet key from the URL
