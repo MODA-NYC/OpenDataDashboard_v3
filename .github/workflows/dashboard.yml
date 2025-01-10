@@ -28,8 +28,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           
-     #Beginning of MX Code:
-     # Debugging: Ensure the working directory is correct and credentials are accessible
+      
+      #Beginning of MX Code:
+     
+      # Debugging: Ensure the working directory is correct and credentials are accessible
       - name: Check Environment
         run: |
           echo "Current directory: $(pwd)"
@@ -41,7 +43,7 @@ jobs:
       # Debugging: Check if secrets are accessible
       - name: Debug Secrets
         run: |
-          echo "GS_CREDENTIALS: ${{ secrets.GS_CREDENTIALS }}"
+          echo "GS_CREDENTIALS: Loaded successfully"
           echo "GS_ODD_PROD_KEY: Loaded successfully"
           echo "GS_ODD_DEV_KEY: Loaded successfully"
 
@@ -55,27 +57,27 @@ jobs:
       # Debugging: Validate JSON content from the production secret
       - name: Debug Prod JSON Content
         run: |
-          echo '${{ secrets.GS_ODD_PROD_KEY }}' > service-account-prod.json
+          echo '${{ secrets.GS_ODD_PROD_KEY }}' | tr -d '\r' > service-account-prod.json
           cat service-account-prod.json
           python -m json.tool service-account-prod.json
 
       # Debugging: Validate the service account credentials for production
       - name: Validate Prod Service Account
         run: |
-          echo "${{ secrets.GS_ODD_PROD_KEY }}" > service-account-prod.json
+          echo '${{ secrets.GS_ODD_PROD_KEY }}' | tr -d '\r' > service-account-prod.json
           python -c "from google.oauth2 import service_account; creds = service_account.Credentials.from_service_account_file('service-account-prod.json'); print('Prod credentials loaded successfully!')"
 
       # Debugging: Validate JSON content from the development secret
       - name: Debug Dev JSON Content
         run: |
-          echo '${{ secrets.GS_ODD_DEV_KEY }}' > service-account-dev.json
+          echo '${{ secrets.GS_ODD_DEV_KEY }}' | tr -d '\r' > service-account-dev.json
           cat service-account-dev.json
           python -m json.tool service-account-dev.json
 
       # Debugging: Validate the service account credentials for development
       - name: Validate Dev Service Account
         run: |
-          echo "${{ secrets.GS_ODD_DEV_KEY }}" > service-account-dev.json
+          echo '${{ secrets.GS_ODD_DEV_KEY }}' | tr -d '\r' > service-account-dev.json
           python -c "from google.oauth2 import service_account; creds = service_account.Credentials.from_service_account_file('service-account-dev.json'); print('Dev credentials loaded successfully!')"
 # end of MX Code
       
