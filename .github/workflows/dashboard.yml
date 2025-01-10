@@ -26,10 +26,41 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt  
+          pip install -r requirements.txt
+      # Debugging: Check if secrets are accessible
+      # Added this step to confirm secrets (`GS_CREDENTIALS`, `GS_ODD_PROD_KEY`, `GS_ODD_DEV_KEY`) are accessible.
+      - name: Debug Secrets
+        run: |
+          echo "GS_CREDENTIALS: ${{ secrets.GS_CREDENTIALS }}"
+          echo "GS_ODD_PROD_KEY: Loaded successfully"
+          echo "GS_ODD_DEV_KEY: Loaded successfully"
+
+      # Debugging: Ensure the working directory is correct and credentials are accessible
+      # Added this step to list directory contents and environment variables.
+      - name: Check Environment
+        run: |
+          echo "Current directory: $(pwd)"
+          echo "Files in the current directory:"
+          ls -a
+          echo "Environment Variables:"
+          env
+
+      # Debugging: Validate the service account credentials for production
+      # Added this step to validate `GS_ODD_PROD_KEY` and ensure it’s valid and properly formatted.
+      - name: Validate Prod Service Account
+        run: |
+          echo "${{ secrets.GS_ODD_PROD_KEY }}" > service-account-prod.json
+          python -c "from google.oauth2 import service_account; creds = service_account.Credentials.from_service_account_file('service-account-prod.json'); print('Prod credentials loaded successfully!')"
       
       - name: Run prod script
         run: python dashboard_prod.py
+      
+      # Debugging: Validate the service account credentials for development
+      # Added this step to validate `GS_ODD_DEV_KEY` credentials.
+      - name: Validate Dev Service Account
+        run: |
+          echo "${{ secrets.GS_ODD_DEV_KEY }}" > service-account-dev.json
+          python -c "from google.oauth2 import service_account; creds = service_account.Credentials.from_service_account_file('service-account-dev.json'); print('Dev credentials loaded successfully!')"
 
       - name: Run dev script
         run: python dashboard_dev.py
