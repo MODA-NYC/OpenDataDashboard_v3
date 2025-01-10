@@ -60,6 +60,14 @@ jobs:
           echo '${{ secrets.GS_ODD_PROD_KEY }}' | tr -d '\r' > service-account-prod.json
           cat service-account-prod.json
           python -m json.tool service-account-prod.json
+      
+      # Debugging: Display the raw content of the service-account-prod.json
+      - name: Output Service Account JSON
+        run: |
+          echo '${{ secrets.GS_ODD_PROD_KEY }}' | tr -d '\r' > service-account-prod.json
+          echo "Raw JSON file contents:"
+          cat service-account-prod.json
+
 
       # Debugging: Validate the service account credentials for production
       - name: Validate Prod Service Account
