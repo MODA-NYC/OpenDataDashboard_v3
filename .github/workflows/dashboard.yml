@@ -27,7 +27,15 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+          
+      
       # Debugging: Check if secrets are accessible
+      # Debugging: Validate JSON content from the secret
+      - name: Debug JSON Content
+        run: |
+          echo '${{ secrets.GS_ODD_PROD_KEY }}' > service-account-debug.json
+          python -m json.tool service-account-debug.json
+
       # Added this step to confirm secrets (`GS_CREDENTIALS`, `GS_ODD_PROD_KEY`, `GS_ODD_DEV_KEY`) are accessible.
       - name: Debug Secrets
         run: |
@@ -61,7 +69,9 @@ jobs:
         run: |
           echo "${{ secrets.GS_ODD_DEV_KEY }}" > service-account-dev.json
           python -c "from google.oauth2 import service_account; creds = service_account.Credentials.from_service_account_file('service-account-dev.json'); print('Dev credentials loaded successfully!')"
-
+# end of MX Code
+      
+      
       - name: Run dev script
         run: python dashboard_dev.py
 
