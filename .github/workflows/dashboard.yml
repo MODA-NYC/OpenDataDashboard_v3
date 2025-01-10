@@ -28,23 +28,8 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           
-      
-      # Debugging: Check if secrets are accessible
-      # Debugging: Validate JSON content from the secret
-      - name: Debug JSON Content
-        run: |
-          echo '${{ secrets.GS_ODD_PROD_KEY }}' > service-account-debug.json
-          python -m json.tool service-account-debug.json
-
-      # Added this step to confirm secrets (`GS_CREDENTIALS`, `GS_ODD_PROD_KEY`, `GS_ODD_DEV_KEY`) are accessible.
-      - name: Debug Secrets
-        run: |
-          echo "GS_CREDENTIALS: ${{ secrets.GS_CREDENTIALS }}"
-          echo "GS_ODD_PROD_KEY: Loaded successfully"
-          echo "GS_ODD_DEV_KEY: Loaded successfully"
-
-      # Debugging: Ensure the working directory is correct and credentials are accessible
-      # Added this step to list directory contents and environment variables.
+     #Beginning of MX Code:
+     # Debugging: Ensure the working directory is correct and credentials are accessible
       - name: Check Environment
         run: |
           echo "Current directory: $(pwd)"
@@ -53,18 +38,41 @@ jobs:
           echo "Environment Variables:"
           env
 
+      # Debugging: Check if secrets are accessible
+      - name: Debug Secrets
+        run: |
+          echo "GS_CREDENTIALS: ${{ secrets.GS_CREDENTIALS }}"
+          echo "GS_ODD_PROD_KEY: Loaded successfully"
+          echo "GS_ODD_DEV_KEY: Loaded successfully"
+
+      # Debugging: Check secret lengths to ensure no truncation
+      - name: Check Secret Lengths
+        run: |
+          echo "Length of GS_CREDENTIALS: $(echo '${{ secrets.GS_CREDENTIALS }}' | wc -c)"
+          echo "Length of GS_ODD_PROD_KEY: $(echo '${{ secrets.GS_ODD_PROD_KEY }}' | wc -c)"
+          echo "Length of GS_ODD_DEV_KEY: $(echo '${{ secrets.GS_ODD_DEV_KEY }}' | wc -c)"
+
+      # Debugging: Validate JSON content from the production secret
+      - name: Debug Prod JSON Content
+        run: |
+          echo '${{ secrets.GS_ODD_PROD_KEY }}' > service-account-prod.json
+          cat service-account-prod.json
+          python -m json.tool service-account-prod.json
+
       # Debugging: Validate the service account credentials for production
-      # Added this step to validate `GS_ODD_PROD_KEY` and ensure it’s valid and properly formatted.
       - name: Validate Prod Service Account
         run: |
           echo "${{ secrets.GS_ODD_PROD_KEY }}" > service-account-prod.json
           python -c "from google.oauth2 import service_account; creds = service_account.Credentials.from_service_account_file('service-account-prod.json'); print('Prod credentials loaded successfully!')"
-      
-      - name: Run prod script
-        run: python dashboard_prod.py
-      
+
+      # Debugging: Validate JSON content from the development secret
+      - name: Debug Dev JSON Content
+        run: |
+          echo '${{ secrets.GS_ODD_DEV_KEY }}' > service-account-dev.json
+          cat service-account-dev.json
+          python -m json.tool service-account-dev.json
+
       # Debugging: Validate the service account credentials for development
-      # Added this step to validate `GS_ODD_DEV_KEY` credentials.
       - name: Validate Dev Service Account
         run: |
           echo "${{ secrets.GS_ODD_DEV_KEY }}" > service-account-dev.json
