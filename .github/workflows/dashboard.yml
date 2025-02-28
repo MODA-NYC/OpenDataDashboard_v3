@@ -1,5 +1,5 @@
 name: ODD
- 
+
 on:
   push:
   schedule:
@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 concurrency: staging_environment
- 
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -22,76 +22,73 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
-          python-version: '3.8.15'     
+          python-version: '3.8.15'
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          
-      
+
       #Beginning of MX Code:
-     
       # Debugging: Ensure the working directory is correct and credentials are accessible
-      - name: Check Environment
-        run: |
-          echo "Current directory: $(pwd)"
-          echo "Files in the current directory:"
-          ls -a
-          echo "Environment Variables:"
-          env
+      #- name: Check Environment
+      #  run: |
+      #    echo "Current directory: $(pwd)"
+      #    echo "Files in the current directory:"
+      #    ls -a
+      #    echo "Environment Variables:"
+      #    env
 
       # Debugging: Check if secrets are accessible
-      - name: Debug Secrets
-        run: |
-          echo "GS_CREDENTIALS: Loaded successfully"
-          echo "GS_ODD_PROD_KEY: Loaded successfully"
-          echo "GS_ODD_DEV_KEY: Loaded successfully"
+      #- name: Debug Secrets
+      #  run: |
+      #    echo "GS_CREDENTIALS: Loaded successfully"
+      #    echo "GS_ODD_PROD_KEY: Loaded successfully"
+      #    echo "GS_ODD_DEV_KEY: Loaded successfully"
 
       # Debugging: Check secret lengths to ensure no truncation
-      - name: Check Secret Lengths
-        run: |
-          echo "Length of GS_CREDENTIALS: $(echo '${{ secrets.GS_CREDENTIALS }}' | wc -c)"
-          echo "Length of GS_ODD_PROD_KEY: $(echo '${{ secrets.GS_ODD_PROD_KEY }}' | wc -c)"
-          echo "Length of GS_ODD_DEV_KEY: $(echo '${{ secrets.GS_ODD_DEV_KEY }}' | wc -c)"
+      #- name: Check Secret Lengths
+      #  run: |
+      #    echo "Length of GS_CREDENTIALS: $(echo '${{ secrets.GS_CREDENTIALS }}' | wc -c)"
+      #    echo "Length of GS_ODD_PROD_KEY: $(echo '${{ secrets.GS_ODD_PROD_KEY }}' | wc -c)"
+      #    echo "Length of GS_ODD_DEV_KEY: $(echo '${{ secrets.GS_ODD_DEV_KEY }}' | wc -c)"
 
       # Debugging: Validate JSON content from the production secret
-      - name: Debug Prod JSON Content
-        run: |
-          echo '${{ secrets.GS_ODD_PROD_KEY }}' | tr -d '\r' > service-account-prod.json
-          cat service-account-prod.json
-          python -m json.tool service-account-prod.json
-      
+      #- name: Debug Prod JSON Content
+      #  run: |
+      #    echo '${{ secrets.GS_ODD_PROD_KEY }}' | tr -d '\r' > service-account-prod.json
+      #    cat service-account-prod.json
+      #    python -m json.tool service-account-prod.json
+
       # Debugging: Display the raw content of the service-account-prod.json
-      - name: Output Service Account JSON
-        run: |
-          echo '${{ secrets.GS_ODD_PROD_KEY }}' | tr -d '\r' > service-account-prod.json
-          echo "Raw JSON file contents:"
-          cat service-account-prod.json
+      #- name: Output Service Account JSON
+      #  run: |
+      #    echo '${{ secrets.GS_ODD_PROD_KEY }}' | tr -d '\r' > service-account-prod.json
+      #    echo "Raw JSON file contents:"
+      #    cat service-account-prod.json
 
 
       # Debugging: Validate the service account credentials for production
-      - name: Validate Prod Service Account
-        run: |
-          echo '${{ secrets.GS_ODD_PROD_KEY }}' | tr -d '\r' > service-account-prod.json
-          python -c "from google.oauth2 import service_account; creds = service_account.Credentials.from_service_account_file('service-account-prod.json'); print('Prod credentials loaded successfully!')"
+      #- name: Validate Prod Service Account
+      #  run: |
+      #    echo '${{ secrets.GS_ODD_PROD_KEY }}' | tr -d '\r' > service-account-prod.json
+      #    python -c "from google.oauth2 import service_account; creds = service_account.Credentials.from_service_account_file('service-account-prod.json'); print('Prod credentials loaded successfully!')"
 
       # Debugging: Validate JSON content from the development secret
-      - name: Debug Dev JSON Content
-        run: |
-          echo '${{ secrets.GS_ODD_DEV_KEY }}' | tr -d '\r' > service-account-dev.json
-          cat service-account-dev.json
-          python -m json.tool service-account-dev.json
+      #- name: Debug Dev JSON Content
+      #  run: |
+      #    echo '${{ secrets.GS_ODD_DEV_KEY }}' | tr -d '\r' > service-account-dev.json
+      #    cat service-account-dev.json
+      #    python -m json.tool service-account-dev.json
 
       # Debugging: Validate the service account credentials for development
-      - name: Validate Dev Service Account
-        run: |
-          echo '${{ secrets.GS_ODD_DEV_KEY }}' | tr -d '\r' > service-account-dev.json
-          python -c "from google.oauth2 import service_account; creds = service_account.Credentials.from_service_account_file('service-account-dev.json'); print('Dev credentials loaded successfully!')"
+      #- name: Validate Dev Service Account
+      #  run: |
+      #    echo '${{ secrets.GS_ODD_DEV_KEY }}' | tr -d '\r' > service-account-dev.json
+      #    python -c "from google.oauth2 import service_account; creds = service_account.Credentials.from_service_account_file('service-account-dev.json'); print('Dev credentials loaded successfully!')"
 # end of MX Code
-      
-      
+
       - name: Run dev script
-        run: python dashboard_dev.py
+        run: python dashboard_prod.py
 
       - name: Report Status
         if: always()
@@ -102,7 +99,7 @@ jobs:
           mention_users_when: 'failure,warnings'
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.ACTION_MONITORING_SLACK }}
-          
+
       - name: Keepalive Workflow
         uses: gautamkrishnar/keepalive-workflow@1.0.7
 
