@@ -86,9 +86,13 @@ jobs:
       #    echo '${{ secrets.GS_ODD_DEV_KEY }}' | tr -d '\r' > service-account-dev.json
       #    python -c "from google.oauth2 import service_account; creds = service_account.Credentials.from_service_account_file('service-account-dev.json'); print('Dev credentials loaded successfully!')"
 # end of MX Code
-
+      
       - name: Run dev script
+        run: python dashboard_dev.py
+
+      - name: Run prod script
         run: python dashboard_prod.py
+
 
       - name: Report Status
         if: always()
